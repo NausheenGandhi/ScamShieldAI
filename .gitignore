@@ -1,0 +1,37 @@
+# ==========================
+# React Native
+# ==========================
+mobile/node_modules/
+mobile/.expo/
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+
+# ==========================
+# Python
+# ==========================
+backend/venv/
+backend/__pycache__/
+ai-engine/__pycache__/
+*.pyc
+
+# ==========================
+# Environment Variables
+# ==========================
+backend/.env
+mobile/.env
+
+# ==========================
+# Logs
+# ==========================
+*.log
+
+# ==========================
+# VS Code
+# ==========================
+.vscode/
+
+# ==========================
+# macOS
+# ==========================
+.DS_Store
