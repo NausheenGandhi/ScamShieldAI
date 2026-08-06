@@ -1,8 +1,54 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  PermissionsAndroid,
+  Platform,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Contacts from "expo-contacts/legacy";
+import * as Notifications from "expo-notifications";
 import { COLORS } from "../constants/colors";
+
+async function requestSms() {
+  if (Platform.OS !== "android") return false;
+  const results = await PermissionsAndroid.requestMultiple([
+    PermissionsAndroid.PERMISSIONS.READ_SMS,
+    PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
+  ]);
+  return Object.values(results).every(
+    (r) => r === PermissionsAndroid.RESULTS.GRANTED,
+  );
+}
+
+async function requestContacts() {
+  const { status } = await Contacts.requestPermissionsAsync();
+  return status === "granted";
+}
+
+async function requestNotifications() {
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status === "granted";
+}
+
+async function requestPermission(id) {
+  switch (id) {
+    case "sms":
+      return requestSms();
+    case "contacts":
+      return requestContacts();
+    case "notifications":
+      return requestNotifications();
+    case "internet":
+      return true; // "normal" permission, granted automatically at install
+    default:
+      return false;
+  }
+}
 
 const PERMISSIONS = [
   {
@@ -42,10 +88,11 @@ const PERMISSIONS = [
 export default function PermissionsScreen({ onGrantPermissions }) {
   const [granted, setGranted] = useState({});
 
-  function handleAllow(id) {
-    setGranted((prev) => ({ ...prev, [id]: true }));
-    // Hook up actual permission requests here later
-    // (e.g. expo-notifications, expo-contacts, native SMS module).
+  async function handleAllow(id) {
+    const wasGranted = await requestPermission(id);
+    if (wasGranted) {
+      setGranted((prev) => ({ ...prev, [id]: true }));
+    }
   }
 
   const requiredIds = PERMISSIONS.filter((p) => p.badge === "REQUIRED").map(

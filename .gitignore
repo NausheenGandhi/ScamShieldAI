@@ -11,6 +11,7 @@ mobile/android/app/build/
 # Python
 # ==========================
 backend/venv/
+backend/.venv/
 backend/__pycache__/
 ai-engine/__pycache__/
 *.pyc

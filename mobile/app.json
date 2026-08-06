@@ -16,13 +16,25 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.naush12.mobile"
+      "package": "com.naush12.mobile",
+      "permissions": [
+        "READ_SMS",
+        "RECEIVE_SMS",
+        "READ_CONTACTS",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "ScamShield AI needs contacts access to tell known senders apart from unknown or spoofed numbers."
+        }
+      ]
     ]
   }
 }

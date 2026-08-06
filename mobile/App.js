@@ -4,11 +4,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import OnboardingScreen, { INTRO_STEPS } from "./components/OnboardingScreen";
 import PermissionsScreen from "./components/PermissionsScreen";
+import DeviceDataScreen from "./components/DeviceDataScreen";
 import SecurityCenter from "./components/SecurityCenter";
 
 const STAGES = {
   ONBOARDING: "onboarding",
   PERMISSIONS: "permissions",
+  DEVICE_DATA: "device_data",
   SECURITY_CENTER: "security_center",
 };
 
@@ -29,6 +31,10 @@ export default function App() {
   }
 
   function handleGrantPermissions() {
+    setStage(STAGES.DEVICE_DATA);
+  }
+
+  function handleContinueFromDeviceData() {
     setStage(STAGES.SECURITY_CENTER);
   }
 
@@ -53,6 +59,9 @@ export default function App() {
       )}
       {stage === STAGES.PERMISSIONS && (
         <PermissionsScreen onGrantPermissions={handleGrantPermissions} />
+      )}
+      {stage === STAGES.DEVICE_DATA && (
+        <DeviceDataScreen onContinue={handleContinueFromDeviceData} />
       )}
       {stage === STAGES.SECURITY_CENTER && (
         <SecurityCenter onBack={handleBackToIntroduction} onScan={handleScan} />
