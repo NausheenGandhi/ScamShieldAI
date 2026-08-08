@@ -133,6 +133,7 @@ function withSmsManifest(config) {
       "android.permission.RECEIVE_SMS",
       "android.permission.READ_SMS",
       "android.permission.POST_NOTIFICATIONS",
+      "android.permission.PACKAGE_USAGE_STATS",
     ];
 
     for (const permission of requiredPermissions) {
