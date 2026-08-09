@@ -598,18 +598,58 @@ def analyze_otp(
     screen_unlocked: bool = True,
 ) -> Dict[str, Any]:
 
-    sms_text = message if message is not None else body
+    try:
+        # Input validation and type checking
+        sms_text = message if message is not None else body
 
-    if sms_text is None:
-        sms_text = ""
+        if sms_text is None:
+            sms_text = ""
 
-    return otp_agent.analyze(
-        sender=sender,
-        message=sms_text,
-        expected_otp=expected_otp,
-        foreground_app=foreground_app,
-        screen_unlocked=screen_unlocked,
-    )
+        # Ensure all inputs are proper types
+        sender = str(sender or "").strip()
+        sms_text = str(sms_text or "").strip()
+        foreground_app = str(foreground_app or "").strip()
+        expected_otp = bool(expected_otp)
+        screen_unlocked = bool(screen_unlocked)
+
+        # At least one of message or body should be present
+        if not sms_text:
+            return otp_agent._not_otp_result()
+
+        return otp_agent.analyze(
+            sender=sender,
+            message=sms_text,
+            expected_otp=expected_otp,
+            foreground_app=foreground_app,
+            screen_unlocked=screen_unlocked,
+        )
+
+    except Exception as e:
+        print(f"OTP Agent error: {str(e)}")
+        return {
+            "level": "NOT_OTP",
+            "score": 0,
+            "confidence": 0,
+            "otp_code": None,
+            "reasons": [f"Analysis error: {str(e)}"],
+            "signals": {
+                "otp_detected": False,
+                "otp_code_detected": False,
+                "expected_otp": False,
+                "foreground_app": "",
+                "relevant_foreground_app": False,
+                "screen_unlocked": True,
+                "possible_unrequested": False,
+                "sharing_request": False,
+                "third_party_request": False,
+                "plain_mobile_sender": False,
+                "has_url": False,
+                "urgency": False,
+                "threat": False,
+                "repeated_otp": False,
+            },
+            "agent": "OTP Agent",
+        }
 
 
 # ============================================================

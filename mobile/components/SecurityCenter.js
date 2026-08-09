@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../constants/colors";
 
-export default function SecurityCenter({ onBack, onScan }) {
+export default function SecurityCenter({ onBack, onOtpAgent, onUrlAgent }) {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.securityContainer}>
@@ -30,24 +30,52 @@ export default function SecurityCenter({ onBack, onScan }) {
           <View style={styles.readyTextContainer}>
             <Text style={styles.readyTitle}>You are ready</Text>
             <Text style={styles.readyDescription}>
-              Paste a message or link to check it before you open it.
+              Pick an agent below to see what it's watching for.
             </Text>
           </View>
         </View>
 
-        <Pressable
-          onPress={onScan}
-          accessibilityRole="button"
-          accessibilityLabel="Scan a message"
-          style={({ pressed }) => [
-            styles.scanButton,
-            pressed && styles.buttonPressed,
-          ]}
-        >
-          <Ionicons name="search-outline" size={23} color={COLORS.darkIcon} />
-          <Text style={styles.scanButtonText}>Scan a message</Text>
-          <Ionicons name="arrow-up-outline" size={22} color={COLORS.darkIcon} />
-        </Pressable>
+        <View style={styles.agentsRow}>
+          <Pressable
+            onPress={onOtpAgent}
+            accessibilityRole="button"
+            accessibilityLabel="Open OTP Agent"
+            style={({ pressed }) => [
+              styles.agentCard,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <View
+              style={[styles.agentIconCircle, { backgroundColor: COLORS.cyan }]}
+            >
+              <Ionicons name="key-outline" size={26} color={COLORS.darkIcon} />
+            </View>
+            <Text style={styles.agentCardTitle}>OTP Agent</Text>
+            <Text style={styles.agentCardSubtitle}>
+              Real-time OTP protection
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={onUrlAgent}
+            accessibilityRole="button"
+            accessibilityLabel="Open URL Agent"
+            style={({ pressed }) => [
+              styles.agentCard,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <View
+              style={[styles.agentIconCircle, { backgroundColor: COLORS.teal }]}
+            >
+              <Ionicons name="link-outline" size={26} color={COLORS.darkIcon} />
+            </View>
+            <Text style={styles.agentCardTitle}>URL Agent</Text>
+            <Text style={styles.agentCardSubtitle}>
+              Link & spam detection
+            </Text>
+          </Pressable>
+        </View>
 
         <Pressable
           onPress={onBack}
@@ -108,12 +136,12 @@ const styles = StyleSheet.create({
   },
   protectedText: { color: COLORS.white, fontSize: 12, fontWeight: "600" },
   readyCard: {
-    minHeight: 180,
+    minHeight: 150,
     borderRadius: 28,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: "#16435A",
-    marginTop: 42,
+    marginTop: 32,
     padding: 22,
     flexDirection: "row",
     alignItems: "center",
@@ -134,27 +162,50 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   readyDescription: { color: COLORS.muted, fontSize: 14, lineHeight: 21 },
-  scanButton: {
-    minHeight: 62,
-    borderRadius: 31,
-    backgroundColor: COLORS.cyan,
+
+  agentsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 22,
+    gap: 14,
     marginTop: 18,
   },
-  scanButtonText: {
+  agentCard: {
     flex: 1,
-    color: COLORS.darkIcon,
+    minHeight: 150,
+    borderRadius: 26,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: "#16435A",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 22,
+    paddingHorizontal: 12,
+  },
+  agentIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  agentCardTitle: {
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: "700",
-    paddingLeft: 12,
+    marginBottom: 6,
   },
+  agentCardSubtitle: {
+    color: COLORS.muted,
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 17,
+  },
+
   backButton: {
     minHeight: 58,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 12,
+    marginTop: 16,
   },
   backButtonText: { color: COLORS.muted, fontSize: 14, fontWeight: "500" },
   buttonPressed: { opacity: 0.75, transform: [{ scale: 0.985 }] },

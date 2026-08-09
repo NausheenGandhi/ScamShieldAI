@@ -68,8 +68,10 @@ for test in messages:
 
     result = agent.analyze(
         sender=test["sender"],
-        body=test["body"],
-        context=test["context"],
+        message=test["body"],
+        expected_otp=True,
+        foreground_app="com.example.bank",
+        screen_unlocked=True,
     )
 
     print("\n" + "=" * 60)
@@ -79,31 +81,27 @@ for test in messages:
     )
 
     print(
-        f"OTP: {result.is_otp}"
+        f"LEVEL: {result['level']}"
     )
 
     print(
-        f"LEVEL: {result.level}"
+        f"SCORE: {result['score']}"
     )
 
     print(
-        f"SCORE: {result.score}"
-    )
-
-    print(
-        f"CONFIDENCE: {result.confidence}%"
+        f"CONFIDENCE: {result['confidence']}"
     )
 
     print("REASONS:")
 
-    for reason in result.reasons:
+    for reason in result['reasons']:
         print(
             f"  • {reason}"
         )
 
     print("SIGNALS:")
 
-    for name, value in result.signals.items():
+    for name, value in result['signals'].items():
         print(
             f"  {name}: {value}"
         )

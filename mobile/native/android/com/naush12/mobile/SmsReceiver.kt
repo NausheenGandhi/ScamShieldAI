@@ -22,9 +22,12 @@ class SmsReceiver : BroadcastReceiver() {
     companion object {
 
         // IMPORTANT:
-        // Replace this with your PC's current IPv4 address.
-        private const val BACKEND_URL =
-            "http://192.168.1.101:8000/analyze-sms"
+        // Must match the backend server's address (check constants/api.js)
+        private const val BACKEND_URL_OTP =
+            "http://192.168.31.89:8000/analyze-sms"
+        
+        private const val BACKEND_URL_PHISHING =
+            "http://192.168.31.89:8000/analyze-url"
 
         private const val PREFS_NAME =
             "sms_monitor"
@@ -128,18 +131,76 @@ class SmsReceiver : BroadcastReceiver() {
         screenUnlocked: Boolean
     ): JSONObject {
 
+        val result = JSONObject()
+        
+        // Call OTP Agent
+        try {
+            val otpAnalysis = makeBackendRequest(
+                url = BACKEND_URL_OTP,
+                sender = sender,
+                body = body,
+                foregroundApp = foregroundApp,
+                expectedOtp = expectedOtp,
+                screenUnlocked = screenUnlocked
+            )
+            result.put("analysis", otpAnalysis)
+        } catch (e: Exception) {
+            android.util.Log.e(
+                "SmsReceiver",
+                "OTP analysis failed: ${e.message}"
+            )
+            result.put("analysis", JSONObject().apply {
+                put("error", e.message)
+                put("level", "ERROR")
+            })
+        }
+        
+        // Call URL/Phishing Agent
+        try {
+            val urlAnalysis = makeBackendRequest(
+                url = BACKEND_URL_PHISHING,
+                sender = sender,
+                body = body,
+                foregroundApp = foregroundApp,
+                expectedOtp = expectedOtp,
+                screenUnlocked = screenUnlocked
+            )
+            result.put("url_analysis", urlAnalysis)
+        } catch (e: Exception) {
+            android.util.Log.e(
+                "SmsReceiver",
+                "URL analysis failed: ${e.message}"
+            )
+            result.put("url_analysis", JSONObject().apply {
+                put("error", e.message)
+                put("category", "unknown")
+            })
+        }
+        
+        return result
+    }
+
+    private fun makeBackendRequest(
+        url: String,
+        sender: String,
+        body: String,
+        foregroundApp: String,
+        expectedOtp: Boolean,
+        screenUnlocked: Boolean
+    ): JSONObject {
+
         val connection =
-            URL(BACKEND_URL)
+            URL(url)
                 .openConnection()
                     as HttpURLConnection
 
         connection.requestMethod = "POST"
 
         connection.connectTimeout =
-            5000
+            8000
 
         connection.readTimeout =
-            10000
+            15000
 
         connection.doOutput = true
 
@@ -200,15 +261,6 @@ class SmsReceiver : BroadcastReceiver() {
         val responseCode =
             connection.responseCode
 
-        if (
-            responseCode !in 200..299
-        ) {
-
-            throw Exception(
-                "Backend HTTP error: $responseCode"
-            )
-        }
-
         val response =
             connection.inputStream
                 .bufferedReader()
@@ -217,6 +269,15 @@ class SmsReceiver : BroadcastReceiver() {
                 }
 
         connection.disconnect()
+
+        if (
+            responseCode !in 200..299
+        ) {
+
+            throw Exception(
+                "Backend HTTP error: $responseCode - $response"
+            )
+        }
 
         return JSONObject(
             response
@@ -394,10 +455,30 @@ class SmsReceiver : BroadcastReceiver() {
             screenUnlocked
         )
 
-        event.put(
-            "analysis",
-            result
-        )
+        // Extract both analysis results from the combined result object
+        if (result.has("analysis")) {
+            event.put(
+                "analysis",
+                result.getJSONObject("analysis")
+            )
+        } else {
+            event.put(
+                "analysis",
+                JSONObject()
+            )
+        }
+
+        if (result.has("url_analysis")) {
+            event.put(
+                "url_analysis",
+                result.getJSONObject("url_analysis")
+            )
+        } else {
+            event.put(
+                "url_analysis",
+                JSONObject()
+            )
+        }
 
         context
             .getSharedPreferences(
