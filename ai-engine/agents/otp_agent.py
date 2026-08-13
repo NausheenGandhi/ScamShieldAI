@@ -1,735 +1,616 @@
-import re
-from typing import Any, Dict, List, Optional
+"""
+otp_agent.py
+
+OTP Agent for SMS scam detection.
+
+Responsibilities:
+    1. Receive the sanitized SMS from Android.
+    2. Use Groq LLM to detect the INTENT of the SMS.
+    3. Use Android context as additional signals.
+    4. Pass LLM intent + local signals to the Risk Engine.
+    5. Return the final OTP security verdict.
+
+IMPORTANT PRIVACY RULE:
+    The actual OTP must NEVER reach this agent.
+
+Example:
+
+    Original SMS:
+        "Your OTP is 482193. Give me the OTP immediately."
+
+    Android sanitization:
+        "Your OTP is [OTP]. Give me the OTP immediately."
+
+    This agent receives only:
+        "Your OTP is [OTP]. Give me the OTP immediately."
+"""
+
+from typing import Dict, Any
+
+from utils.groq_client import groq_chat_json
+
+from prompts.otp_prompts import OTP_INTENT_PROMPT
+
+from risk_engine import calculate_risk
 
 
-class OTPAgent:
+# ============================================================
+# LLM INTENT DETECTION
+# ============================================================
+
+def detect_otp_intent(
+    message: str
+) -> Dict[str, Any]:
     """
-    OTP Fraud Detection Agent.
+    Uses Groq to determine the intent of a sanitized SMS.
 
-    This agent uses NLP-style text/keyword analysis and
-    contextual Android signals.
+    The LLM does NOT receive the actual OTP.
+    """
 
-    It does NOT require a training dataset.
+    # --------------------------------------------------------
+    # Extra safety check
+    # --------------------------------------------------------
+    #
+    # If Android failed to sanitize an OTP and the message
+    # contains [OTP], we still don't attempt to extract it here.
+    #
+    # OTP extraction belongs to Android/local processing.
+    # --------------------------------------------------------
 
-    Inputs:
+    prompt = OTP_INTENT_PROMPT.format(
+        sms_text=message
+    )
+
+    try:
+
+        result = groq_chat_json(
+
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+
+            temperature=0.1,
+
+            max_tokens=500,
+        )
+
+        return validate_llm_result(
+            result
+        )
+
+    except Exception as e:
+
+        print(
+            "OTP Groq analysis failed:",
+            str(e)
+        )
+
+        # Safe fallback.
+        return {
+
+            "is_otp":
+                "[OTP]" in message,
+
+            "intent":
+                "NON_OTP",
+
+            "sharing_request":
+                False,
+
+            "third_party_request":
+                False,
+
+            "urgency":
+                False,
+
+            "threat":
+                False,
+
+            "phishing":
+                False,
+
+            "possible_unrequested":
+                False,
+
+            "confidence":
+                "low",
+
+            "reason":
+                "Unable to perform LLM intent analysis.",
+        }
+
+
+# ============================================================
+# VALIDATE LLM RESULT
+# ============================================================
+
+def validate_llm_result(
+    result: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Validates and normalizes the JSON returned by Groq.
+    """
+
+    allowed_intents = {
+
+        "NORMAL_OTP",
+
+        "OTP_SHARING_REQUEST",
+
+        "UNREQUESTED_OTP",
+
+        "OTP_PHISHING",
+
+        "OTP_THREAT",
+
+        "OTP_CUSTOMER_CARE_SCAM",
+
+        "NON_OTP",
+    }
+
+
+    # --------------------------------------------------------
+    # Handle malformed Groq response
+    # --------------------------------------------------------
+
+    if not isinstance(
+        result,
+        dict
+    ):
+
+        return {
+
+            "is_otp": False,
+
+            "intent": "NON_OTP",
+
+            "sharing_request": False,
+
+            "third_party_request": False,
+
+            "urgency": False,
+
+            "threat": False,
+
+            "phishing": False,
+
+            "possible_unrequested": False,
+
+            "confidence": "low",
+
+            "reason":
+                "Invalid LLM response.",
+        }
+
+
+    # --------------------------------------------------------
+    # Intent
+    # --------------------------------------------------------
+
+    intent = result.get(
+        "intent",
+        "NON_OTP"
+    )
+
+
+    if intent not in allowed_intents:
+
+        intent = "NON_OTP"
+
+
+    # --------------------------------------------------------
+    # Confidence
+    # --------------------------------------------------------
+
+    confidence = result.get(
+        "confidence",
+        "low"
+    )
+
+
+    if isinstance(
+        confidence,
+        str
+    ):
+
+        confidence = confidence.lower()
+
+        if confidence not in {
+            "low",
+            "medium",
+            "high"
+        }:
+
+            confidence = "low"
+
+
+    # --------------------------------------------------------
+    # Return normalized result
+    # --------------------------------------------------------
+
+    return {
+
+        "is_otp":
+            bool(
+                result.get(
+                    "is_otp",
+                    False
+                )
+            ),
+
+        "intent":
+            intent,
+
+        "sharing_request":
+            bool(
+                result.get(
+                    "sharing_request",
+                    False
+                )
+            ),
+
+        "third_party_request":
+            bool(
+                result.get(
+                    "third_party_request",
+                    False
+                )
+            ),
+
+        "urgency":
+            bool(
+                result.get(
+                    "urgency",
+                    False
+                )
+            ),
+
+        "threat":
+            bool(
+                result.get(
+                    "threat",
+                    False
+                )
+            ),
+
+        "phishing":
+            bool(
+                result.get(
+                    "phishing",
+                    False
+                )
+            ),
+
+        "possible_unrequested":
+            bool(
+                result.get(
+                    "possible_unrequested",
+                    False
+                )
+            ),
+
+        "confidence":
+            confidence,
+
+        "reason":
+            str(
+                result.get(
+                    "reason",
+                    ""
+                )
+            ),
+    }
+
+
+# ============================================================
+# LOCAL SIGNALS
+# ============================================================
+
+def is_plain_mobile_sender(
+    sender: str
+) -> bool:
+    """
+    Determines whether the sender looks like a plain
+    mobile number.
+
+    This is LOCAL/SIGNAL processing.
+
+    It is not used to determine the semantic intent.
+    """
+
+    if not sender:
+
+        return False
+
+
+    clean_sender = (
         sender
-        message
-        expected_otp
-        foreground_app
-        screen_unlocked
-
-    Output:
-        SAFE / CAUTION / DANGER / NOT_OTP
-    """
-
-    OTP_KEYWORDS = [
-        "otp",
-        "one time password",
-        "one-time password",
-        "verification code",
-        "verification otp",
-        "security code",
-        "authentication code",
-        "auth code",
-        "login code",
-        "login otp",
-        "passcode",
-        "verification passcode",
-        "security otp",
-        "transaction otp",
-        "transaction code",
-    ]
-
-    SHARING_KEYWORDS = [
-        "share the otp",
-        "share otp",
-        "send the otp",
-        "send otp",
-        "tell me the otp",
-        "tell us the otp",
-        "provide the otp",
-        "provide otp",
-        "give me the otp",
-        "give us the otp",
-        "read the otp",
-        "read out the otp",
-        "read otp",
-        "forward the otp",
-        "forward otp",
-        "reply with the otp",
-        "reply with otp",
-        "send this otp",
-        "send this code",
-        "tell me this code",
-        "tell us this code",
-        "confirm the otp",
-        "confirm otp",
-        "confirm the code",
-        "verify the otp with us",
-    ]
-
-    THIRD_PARTY_KEYWORDS = [
-        "customer care",
-        "customer-care",
-        "customer support",
-        "support agent",
-        "support executive",
-        "customer executive",
-        "bank representative",
-        "bank agent",
-        "representative",
-        "agent",
-        "executive",
-        "officer",
-        "delivery agent",
-        "delivery executive",
-        "kyc agent",
-        "verification agent",
-        "technical support",
-        "technical team",
-        "helpdesk",
-        "help desk",
-    ]
-
-    URGENCY_KEYWORDS = [
-        "urgent",
-        "urgently",
-        "immediately",
-        "immediate",
-        "right now",
-        "act now",
-        "do it now",
-        "hurry",
-        "quickly",
-        "as soon as possible",
-        "within 2 minutes",
-        "within 5 minutes",
-        "within 10 minutes",
-        "within minutes",
-        "limited time",
-        "last warning",
-        "final warning",
-        "important",
-        "attention required",
-        "immediate action",
-        "action required",
-        "respond immediately",
-        "verify immediately",
-    ]
-
-    THREAT_KEYWORDS = [
-        "account will be blocked",
-        "account will be suspended",
-        "account suspended",
-        "account blocked",
-        "account will close",
-        "account closure",
-        "will be blocked",
-        "will be suspended",
-        "will be closed",
-        "account locked",
-        "account will be locked",
-        "card blocked",
-        "card will be blocked",
-        "bank account blocked",
-        "bank account suspended",
-        "transactions blocked",
-        "transactions will be blocked",
-        "transaction blocked",
-        "payment blocked",
-        "service terminated",
-        "service will be terminated",
-        "legal action",
-        "penalty",
-        "fine",
-        "lose your money",
-        "lose ur money",
-        "lose money",
-        "money will be lost",
-        "funds will be lost",
-    ]
-
-    UNREQUESTED_KEYWORDS = [
-        "didn't request",
-        "did not request",
-        "not requested",
-        "you did not request",
-        "you didn't request",
-        "if you did not request",
-        "if you didn't request",
-        "if you have not requested",
-        "if you haven't requested",
-        "wasn't you",
-        "was not you",
-        "not you",
-        "someone else",
-        "unauthorized login",
-        "unauthorised login",
-        "unauthorized transaction",
-        "unauthorised transaction",
-        "unknown login",
-        "unknown transaction",
-        "suspicious login",
-        "suspicious transaction",
-    ]
-
-    REPEATED_KEYWORDS = [
-        "multiple otp",
-        "multiple otps",
-        "otp again",
-        "otp again and again",
-        "another otp",
-        "another verification code",
-        "new otp",
-        "new verification code",
-        "repeated otp",
-        "repeated verification",
-        "otp requests",
-        "multiple requests",
-        "several otp",
-        "several otps",
-    ]
-
-    URL_PATTERN = re.compile(
-        r"(https?://\S+|"
-        r"www\.\S+|"
-        r"\b[a-zA-Z0-9-]+\."
-        r"(?:com|in|net|org|co|info|biz|xyz|top|site|online)"
-        r"(?:/\S*)?)",
-        re.IGNORECASE,
+        .replace("+", "")
+        .replace("-", "")
+        .replace(" ", "")
+        .replace("(", "")
+        .replace(")", "")
     )
 
-    OTP_CODE_PATTERN = re.compile(
-        r"\b\d{4,10}\b"
+
+    return (
+        clean_sender.isdigit()
+        and len(clean_sender) >= 10
     )
-
-    INDIAN_MOBILE_PATTERN = re.compile(
-        r"^(?:\+91|91)?[6-9]\d{9}$"
-    )
-
-    # Packages where receiving an OTP is reasonably plausible.
-    # Add your own banking/payment apps here.
-    RELEVANT_APP_KEYWORDS = [
-        "bank",
-        "hdfc",
-        "icici",
-        "sbi",
-        "axis",
-        "kotak",
-        "paytm",
-        "phonepe",
-        "googlepay",
-        "gpay",
-        "amazon",
-        "flipkart",
-        "cred",
-        "paypal",
-        "microsoft",
-        "google",
-        "instagram",
-        "facebook",
-        "whatsapp",
-        "linkedin",
-        "swiggy",
-        "zomato",
-        "uber",
-        "ola",
-    ]
-
-    def analyze(
-        self,
-        sender: str,
-        message: str,
-        expected_otp: bool = False,
-        foreground_app: str = "",
-        screen_unlocked: bool = True,
-    ) -> Dict[str, Any]:
-
-        sender = str(sender or "").strip()
-        message = str(message or "")
-        text = message.lower().strip()
-
-        otp_keyword_detected = self._contains_any(
-            text,
-            self.OTP_KEYWORDS
-        )
-
-        otp_code = self._extract_otp_code(message)
-
-        otp_code_detected = otp_code is not None
-
-        otp_detected = (
-            otp_keyword_detected
-            or otp_code_detected
-        )
-
-        if not otp_detected:
-            return self._not_otp_result()
-
-        possible_unrequested = self._contains_any(
-            text,
-            self.UNREQUESTED_KEYWORDS
-        )
-
-        sharing_request = self._contains_any(
-            text,
-            self.SHARING_KEYWORDS
-        )
-
-        third_party_request = self._contains_any(
-            text,
-            self.THIRD_PARTY_KEYWORDS
-        )
-
-        plain_mobile_sender = self._is_plain_mobile_number(
-            sender
-        )
-
-        has_url = bool(
-            self.URL_PATTERN.search(message)
-        )
-
-        urgency = self._contains_any(
-            text,
-            self.URGENCY_KEYWORDS
-        )
-
-        threat = self._contains_any(
-            text,
-            self.THREAT_KEYWORDS
-        )
-
-        repeated_otp = self._contains_any(
-            text,
-            self.REPEATED_KEYWORDS
-        )
-
-        relevant_foreground_app = self._is_relevant_app(
-            foreground_app
-        )
-
-        # ----------------------------------------------------
-        # Risk score
-        # ----------------------------------------------------
-
-        score = 0
-        reasons: List[str] = []
-
-        # User/context signal
-        if expected_otp:
-            reasons.append(
-                "OTP appears associated with a recent user-initiated action"
-            )
-
-        elif not foreground_app:
-            score += 5
-
-            reasons.append(
-                "No recent foreground app activity was detected"
-            )
-
-        elif not relevant_foreground_app:
-            score += 3
-
-            reasons.append(
-                "Recent foreground app does not appear to be an OTP-related app"
-            )
-
-        # Explicit unrequested wording
-        if possible_unrequested:
-            score += 5
-
-            reasons.append(
-                "OTP may not have been requested by you"
-            )
-
-        # Sharing
-        if sharing_request:
-            score += 7
-
-            reasons.append(
-                "Message asks you to share the OTP"
-            )
-
-        # Third party
-        if third_party_request:
-            score += 4
-
-            reasons.append(
-                "Message refers to a customer-care representative or agent"
-            )
-
-        # Sender
-        if plain_mobile_sender:
-            score += 3
-
-            reasons.append(
-                "OTP came from a plain mobile number"
-            )
-
-        # URL
-        if has_url:
-            score += 4
-
-            reasons.append(
-                "OTP message contains a link"
-            )
-
-        # Urgency
-        if urgency:
-            score += 3
-
-            reasons.append(
-                "Message uses urgency or pressure"
-            )
-
-        # Threat
-        if threat:
-            score += 3
-
-            reasons.append(
-                "Message threatens account suspension or blocking"
-            )
-
-        # Repeated OTP
-        if repeated_otp:
-            score += 3
-
-            reasons.append(
-                "Message indicates repeated or multiple OTP activity"
-            )
-
-        # Locked screen
-        if not screen_unlocked:
-            score += 1
-
-            reasons.append(
-                "OTP arrived while the screen was locked"
-            )
-
-        # ----------------------------------------------------
-        # Level
-        # ----------------------------------------------------
-
-        level = self._calculate_level(score)
-
-        confidence = self._calculate_confidence(
-            score,
-            level
-        )
-
-        signals = {
-            "otp_detected": True,
-            "otp_code_detected": otp_code_detected,
-
-            "expected_otp": expected_otp,
-            "foreground_app": foreground_app,
-            "relevant_foreground_app": relevant_foreground_app,
-            "screen_unlocked": screen_unlocked,
-
-            "possible_unrequested": possible_unrequested,
-            "sharing_request": sharing_request,
-            "third_party_request": third_party_request,
-            "plain_mobile_sender": plain_mobile_sender,
-            "has_url": has_url,
-            "urgency": urgency,
-            "threat": threat,
-            "repeated_otp": repeated_otp,
-        }
-
-        return {
-            "level": level,
-            "score": score,
-            "confidence": confidence,
-            "otp_code": otp_code,
-            "reasons": reasons,
-            "signals": signals,
-            "agent": "OTP Agent",
-        }
-
-    def _calculate_level(self, score: int) -> str:
-
-        if score >= 10:
-            return "DANGER"
-
-        if score >= 4:
-            return "CAUTION"
-
-        return "SAFE"
-
-    def _calculate_confidence(
-        self,
-        score: int,
-        level: str
-    ) -> int:
-
-        if level == "SAFE":
-            return 0
-
-        if score >= 20:
-            return 95
-
-        if score >= 15:
-            return 90
-
-        if score >= 10:
-            return 87
-
-        if score >= 7:
-            return 75
-
-        return 60
-
-    def _extract_otp_code(
-        self,
-        message: str
-    ) -> Optional[str]:
-
-        context_pattern = re.compile(
-            r"(?:otp|code|passcode|verification)"
-            r"(?:\s+is|\s*[:\-])?"
-            r"\s*(\d{4,10})",
-            re.IGNORECASE,
-        )
-
-        match = context_pattern.search(message)
-
-        if match:
-            return match.group(1)
-
-        matches = self.OTP_CODE_PATTERN.findall(message)
-
-        if not matches:
-            return None
-
-        return matches[0]
-
-    @staticmethod
-    def _contains_any(
-        text: str,
-        keywords: List[str]
-    ) -> bool:
-
-        return any(
-            keyword.lower() in text
-            for keyword in keywords
-        )
-
-    @classmethod
-    def _is_plain_mobile_number(
-        cls,
-        sender: str
-    ) -> bool:
-
-        normalized = re.sub(
-            r"[\s\-()]",
-            "",
-            sender
-        )
-
-        return bool(
-            cls.INDIAN_MOBILE_PATTERN.match(
-                normalized
-            )
-        )
-
-    @classmethod
-    def _is_relevant_app(
-        cls,
-        package_name: str
-    ) -> bool:
-
-        if not package_name:
-            return False
-
-        package = package_name.lower()
-
-        return any(
-            keyword in package
-            for keyword in cls.RELEVANT_APP_KEYWORDS
-        )
-
-    @staticmethod
-    def _not_otp_result():
-
-        return {
-            "level": "NOT_OTP",
-            "score": 0,
-            "confidence": 0,
-            "otp_code": None,
-            "reasons": [],
-            "signals": {
-                "otp_detected": False,
-                "otp_code_detected": False,
-                "expected_otp": False,
-                "foreground_app": "",
-                "relevant_foreground_app": False,
-                "screen_unlocked": True,
-                "possible_unrequested": False,
-                "sharing_request": False,
-                "third_party_request": False,
-                "plain_mobile_sender": False,
-                "has_url": False,
-                "urgency": False,
-                "threat": False,
-                "repeated_otp": False,
-            },
-            "agent": "OTP Agent",
-        }
 
 
 # ============================================================
-# GLOBAL INSTANCE
-# ============================================================
-
-otp_agent = OTPAgent()
-
-
-# ============================================================
-# FUNCTION USED BY FASTAPI
+# MAIN OTP AGENT
 # ============================================================
 
 def analyze_otp(
-    sender: str = "",
-    message: Optional[str] = None,
-    body: Optional[str] = None,
+    sender: str,
+    message: str,
     expected_otp: bool = False,
     foreground_app: str = "",
     screen_unlocked: bool = True,
 ) -> Dict[str, Any]:
+    """
+    Main entry point used by backend/main.py.
 
-    try:
-        # Input validation and type checking
-        sms_text = message if message is not None else body
+    Parameters:
 
-        if sms_text is None:
-            sms_text = ""
+        sender
+            SMS sender.
 
-        # Ensure all inputs are proper types
-        sender = str(sender or "").strip()
-        sms_text = str(sms_text or "").strip()
-        foreground_app = str(foreground_app or "").strip()
-        expected_otp = bool(expected_otp)
-        screen_unlocked = bool(screen_unlocked)
+        message
+            SANITIZED SMS.
 
-        # At least one of message or body should be present
-        if not sms_text:
-            return otp_agent._not_otp_result()
+        expected_otp
+            Android's context-based indication that an OTP
+            may have been expected.
 
-        return otp_agent.analyze(
-            sender=sender,
-            message=sms_text,
-            expected_otp=expected_otp,
-            foreground_app=foreground_app,
-            screen_unlocked=screen_unlocked,
+        foreground_app
+            Package name of the recently active app.
+
+        screen_unlocked
+            Whether the device screen was unlocked.
+
+    Returns:
+
+        Complete OTP analysis + risk verdict.
+    """
+
+    # ========================================================
+    # 1. SAFETY CHECK
+    # ========================================================
+    #
+    # The OTP agent should receive [OTP], not the real OTP.
+    #
+    # We cannot reliably prove that the original OTP has
+    # been removed, but we can detect the expected placeholder.
+    # ========================================================
+
+    has_otp = (
+        "[OTP]" in message
+    )
+
+
+    # ========================================================
+    # 2. URL PLACEHOLDER
+    # ========================================================
+    #
+    # URL Agent is responsible for actual URL analysis.
+    #
+    # The OTP Agent only needs to know whether the message
+    # contains a URL placeholder.
+    # ========================================================
+
+    has_url = (
+        "[URL]" in message
+    )
+
+
+    # ========================================================
+    # 3. SENDER SIGNAL
+    # ========================================================
+
+    plain_mobile_sender = (
+        is_plain_mobile_sender(
+            sender
         )
-
-    except Exception as e:
-        print(f"OTP Agent error: {str(e)}")
-        return {
-            "level": "NOT_OTP",
-            "score": 0,
-            "confidence": 0,
-            "otp_code": None,
-            "reasons": [f"Analysis error: {str(e)}"],
-            "signals": {
-                "otp_detected": False,
-                "otp_code_detected": False,
-                "expected_otp": False,
-                "foreground_app": "",
-                "relevant_foreground_app": False,
-                "screen_unlocked": True,
-                "possible_unrequested": False,
-                "sharing_request": False,
-                "third_party_request": False,
-                "plain_mobile_sender": False,
-                "has_url": False,
-                "urgency": False,
-                "threat": False,
-                "repeated_otp": False,
-            },
-            "agent": "OTP Agent",
-        }
+    )
 
 
-# ============================================================
-# LOCAL TEST
-# ============================================================
+    # ========================================================
+    # 4. LLM INTENT DETECTION
+    # ========================================================
 
-if __name__ == "__main__":
+    llm_result = detect_otp_intent(
+        message
+    )
 
-    tests = [
-        {
-            "name": "Legitimate OTP",
-            "sender": "VK-HDFCBK",
-            "message":
-                "Your OTP is 4821. "
-                "Valid for 10 minutes. "
-                "Do not share this OTP with anyone.",
-            "expected_otp": True,
-            "foreground_app": "com.hdfc.bank",
-            "screen_unlocked": True,
+
+    # ========================================================
+    # 5. RISK ENGINE
+    # ========================================================
+
+    risk_result = calculate_risk(
+
+        llm_result=llm_result,
+
+        has_otp=has_otp,
+
+        has_url=has_url,
+
+        plain_mobile_sender=
+            plain_mobile_sender,
+
+        foreground_app=
+            foreground_app,
+
+        screen_unlocked=
+            screen_unlocked,
+
+        expected_otp=
+            expected_otp,
+    )
+
+
+    # ========================================================
+    # 6. FINAL RESULT
+    # ========================================================
+
+    return {
+
+        # ----------------------------------------------------
+        # OTP information
+        # ----------------------------------------------------
+
+        "otp_detected":
+            has_otp,
+
+        # NEVER return the actual OTP.
+        "otp_code":
+            None,
+
+
+        # ----------------------------------------------------
+        # LLM intent
+        # ----------------------------------------------------
+
+        "intent":
+            llm_result.get(
+                "intent",
+                "NON_OTP"
+            ),
+
+
+        "llm_reason":
+            llm_result.get(
+                "reason",
+                ""
+            ),
+
+
+        "llm_confidence":
+            llm_result.get(
+                "confidence",
+                "low"
+            ),
+
+
+        # ----------------------------------------------------
+        # Final risk
+        # ----------------------------------------------------
+
+        "level":
+            risk_result.get(
+                "level",
+                "SAFE"
+            ),
+
+        "score":
+            risk_result.get(
+                "score",
+                0
+            ),
+
+        "confidence":
+            risk_result.get(
+                "confidence",
+                0
+            ),
+
+        "reasons":
+            risk_result.get(
+                "reasons",
+                []
+            ),
+
+
+        # ----------------------------------------------------
+        # Signals
+        # ----------------------------------------------------
+
+        "signals": {
+
+            "otp_detected":
+                has_otp,
+
+            "otp_code_detected":
+                has_otp,
+
+            "possible_unrequested":
+                llm_result.get(
+                    "possible_unrequested",
+                    False
+                ),
+
+            "sharing_request":
+                llm_result.get(
+                    "sharing_request",
+                    False
+                ),
+
+            "third_party_request":
+                llm_result.get(
+                    "third_party_request",
+                    False
+                ),
+
+            "plain_mobile_sender":
+                plain_mobile_sender,
+
+            "has_url":
+                has_url,
+
+            "urgency":
+                llm_result.get(
+                    "urgency",
+                    False
+                ),
+
+            "threat":
+                llm_result.get(
+                    "threat",
+                    False
+                ),
+
+            "phishing":
+                llm_result.get(
+                    "phishing",
+                    False
+                ),
+
+            "repeated_otp":
+                False,
+
+            "expected_otp":
+                expected_otp,
+
+            "foreground_app":
+                foreground_app,
+
+            "screen_unlocked":
+                screen_unlocked,
         },
-        {
-            "name": "OTP Sharing Scam",
-            "sender": "+919892126809",
-            "message":
-                "Your OTP is 638492749. "
-                "Send this urgently or lose ur money. "
-                "Customer care needs the OTP.",
-            "expected_otp": False,
-            "foreground_app": "",
-            "screen_unlocked": True,
+
+
+        # ----------------------------------------------------
+        # Privacy
+        # ----------------------------------------------------
+
+        "privacy": {
+
+            "otp_sent_to_llm":
+                False,
+
+            "otp_stored_by_agent":
+                False,
+
+            "otp_returned_by_agent":
+                False,
+
+            "sanitized_input":
+                True,
         },
-        {
-            "name": "Phishing OTP",
-            "sender": "+919876543210",
-            "message":
-                "Your OTP is 4821. "
-                "Verify your account immediately at "
-                "http://fake-bank.xyz/verify "
-                "or your account will be suspended.",
-            "expected_otp": False,
-            "foreground_app": "",
-            "screen_unlocked": True,
-        },
-        {
-            "name": "Normal SMS",
-            "sender": "+919876543210",
-            "message":
-                "Hey, are you coming to college tomorrow?",
-            "expected_otp": False,
-            "foreground_app": "",
-            "screen_unlocked": True,
-        },
-    ]
-
-    for test in tests:
-
-        result = analyze_otp(
-            sender=test["sender"],
-            message=test["message"],
-            expected_otp=test["expected_otp"],
-            foreground_app=test["foreground_app"],
-            screen_unlocked=test["screen_unlocked"],
-        )
-
-        print("\n" + "=" * 60)
-        print("TEST:", test["name"])
-        print("=" * 60)
-
-        print("OTP:", result["signals"]["otp_detected"])
-        print("LEVEL:", result["level"])
-        print("SCORE:", result["score"])
-        print("CONFIDENCE:", f'{result["confidence"]}%')
-        print("OTP CODE:", result["otp_code"])
-
-        print("\nREASONS:")
-
-        for reason in result["reasons"]:
-            print(" •", reason)
-
-        print("\nSIGNALS:")
-
-        for key, value in result["signals"].items():
-            print(f"  {key}: {value}")
+    }

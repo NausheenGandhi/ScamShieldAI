@@ -1,3 +1,3 @@
-from .otp_agent import OTPAgent
+from .otp_agent import analyze_otp
 
-__all__ = ["OTPAgent"]
+__all__ = ["analyze_otp"]
