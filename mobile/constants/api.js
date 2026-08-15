@@ -16,4 +16,4 @@
 // Also make sure the backend is started with --host 0.0.0.0 so it accepts
 // connections from other devices, not just localhost.
 
-export const API_BASE_URL = "http://192.168.1.101:8000";
+export const API_BASE_URL = "http://127.0.0.1:8000";

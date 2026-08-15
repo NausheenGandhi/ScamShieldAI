@@ -1,5 +1,6 @@
 import os
 import sys
+import importlib
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
@@ -36,37 +37,68 @@ if AI_ENGINE_DIR not in sys.path:
 # OTP AGENT
 # ============================================================
 
-# use importlib to attempt importing from the ai-engine/agents package
-import importlib
-
 try:
     module = importlib.import_module("agents.otp_agent")
     analyze_otp = getattr(module, "analyze_otp")
     OTP_AGENT_AVAILABLE = True
+
 except Exception as e:
     OTP_AGENT_AVAILABLE = False
     analyze_otp = None
-    print("OTP Agent import failed:", str(e))
+
+    print(
+        "OTP Agent import failed:",
+        str(e)
+    )
 
 
 # ============================================================
 # URL AGENT
 # ============================================================
+
 #
 # IMPORTANT:
 # DO NOT CHANGE YOUR EXISTING URL AGENT.
 #
-# It continues using your existing Groq implementation.
-# ============================================================
+# It continues using your existing implementation.
+#
 
 try:
     module = importlib.import_module("agents.url_agent")
     analyze_url = getattr(module, "analyze_url")
     URL_AGENT_AVAILABLE = True
+
 except Exception as e:
     URL_AGENT_AVAILABLE = False
     analyze_url = None
-    print("URL Agent import failed:", str(e))
+
+    print(
+        "URL Agent import failed:",
+        str(e)
+    )
+
+
+# ============================================================
+# CONTACT AGENT
+# ============================================================
+
+try:
+    module = importlib.import_module("agents.contact_agent")
+    analyze_contact = getattr(
+        module,
+        "analyze_contact"
+    )
+
+    CONTACT_AGENT_AVAILABLE = True
+
+except Exception as e:
+    CONTACT_AGENT_AVAILABLE = False
+    analyze_contact = None
+
+    print(
+        "Contact Agent import failed:",
+        str(e)
+    )
 
 
 # ============================================================
@@ -118,6 +150,17 @@ class SMSRequest(BaseModel):
 
     screen_unlocked: bool = True
 
+    # ========================================================
+    # CONTACT AGENT SIGNALS
+    # ========================================================
+    #
+    # These values are computed on the Android device.
+    #
+
+    is_saved_contact: bool = False
+
+    contact_name: Optional[str] = None
+
 
 # ============================================================
 # ROOT
@@ -127,12 +170,22 @@ class SMSRequest(BaseModel):
 def root():
 
     return {
+
         "status": "running",
-        "service": "Scam Detection Backend",
+
+        "service":
+            "Scam Detection Backend",
 
         "agents": {
-            "otp": OTP_AGENT_AVAILABLE,
-            "url": URL_AGENT_AVAILABLE,
+
+            "otp":
+                OTP_AGENT_AVAILABLE,
+
+            "url":
+                URL_AGENT_AVAILABLE,
+
+            "contact":
+                CONTACT_AGENT_AVAILABLE,
         }
     }
 
@@ -146,13 +199,17 @@ def health():
 
     return {
 
-        "status": "healthy",
+        "status":
+            "healthy",
 
         "otp_agent":
             OTP_AGENT_AVAILABLE,
 
         "url_agent":
             URL_AGENT_AVAILABLE,
+
+        "contact_agent":
+            CONTACT_AGENT_AVAILABLE,
     }
 
 
@@ -170,7 +227,9 @@ def analyze_sms(
 
     print("=" * 70)
 
-    print("NEW SMS - OTP ANALYSIS")
+    print(
+        "NEW SMS - OTP ANALYSIS"
+    )
 
     print("=" * 70)
 
@@ -187,7 +246,7 @@ def analyze_sms(
     #
     # SmsReceiver.kt should already sanitize the OTP.
     #
-    # Example received by backend:
+    # Example:
     #
     # "Your OTP is [OTP]. Give me the OTP."
     #
@@ -348,11 +407,14 @@ def analyze_url_endpoint(
     )
 
 
+    # ========================================================
     # IMPORTANT:
+    #
     # URL Agent receives the ORIGINAL SMS.
     #
     # SmsReceiver.kt calls this endpoint with
     # originalBody, not sanitizedBody.
+    # ========================================================
 
     print(
         "Message:",
@@ -438,3 +500,149 @@ def analyze_url_endpoint(
 
     return result
 
+
+# ============================================================
+# CONTACT ANALYSIS
+# ============================================================
+
+@app.post("/analyze-contact")
+def analyze_contact_endpoint(
+    request: SMSRequest
+):
+
+    print("\n")
+
+    print("=" * 70)
+
+    print(
+        "NEW CONTACT ANALYSIS REQUEST"
+    )
+
+    print("=" * 70)
+
+
+    print(
+        "Sender:",
+        request.sender
+    )
+
+
+    print(
+        "Saved contact:",
+        request.is_saved_contact
+    )
+
+
+    print(
+        "Contact name:",
+        request.contact_name
+    )
+
+
+    # ========================================================
+    # CHECK CONTACT AGENT
+    # ========================================================
+
+    if not CONTACT_AGENT_AVAILABLE:
+
+        raise HTTPException(
+
+            status_code=500,
+
+            detail="Contact Agent is unavailable"
+        )
+
+
+    # ========================================================
+    # BASIC VALIDATION
+    # ========================================================
+
+    if (
+        not request.body
+        or not request.body.strip()
+    ):
+
+        raise HTTPException(
+
+            status_code=400,
+
+            detail="body must not be empty"
+        )
+
+
+    # ========================================================
+    # CONVERT TIMESTAMP
+    # ========================================================
+    #
+    # Kotlin sends epoch milliseconds.
+    #
+    # Contact Agent expects seconds.
+    #
+
+    ts_seconds = (
+        request.timestamp / 1000
+        if request.timestamp
+        else None
+    )
+
+
+    # ========================================================
+    # CONTACT AGENT
+    # ========================================================
+
+    try:
+
+        result = analyze_contact(
+
+            sender=
+                request.sender,
+
+            message=
+                request.body,
+
+            is_saved_contact=
+                request.is_saved_contact,
+
+            contact_name=
+                request.contact_name,
+
+            timestamp=
+                ts_seconds,
+        )
+
+
+    except Exception as e:
+
+        print(
+            "Contact Agent error:",
+            str(e)
+        )
+
+        raise HTTPException(
+
+            status_code=500,
+
+            detail=str(e)
+        )
+
+
+    # ========================================================
+    # PRINT RESULT
+    # ========================================================
+
+    print("\n")
+
+    print(
+        "CONTACT RESULT"
+    )
+
+    print(
+        "-" * 70
+    )
+
+    print(
+        result
+    )
+
+
+    return result

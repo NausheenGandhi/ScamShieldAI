@@ -1,24 +1,55 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import { COLORS } from "../constants/colors";
 
-export default function SecurityCenter({ onBack, onOtpAgent, onUrlAgent }) {
+export default function SecurityCenter({
+  onBack,
+  onOtpAgent,
+  onUrlAgent,
+  onContactAgent,
+}) {
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "bottom"]}
+    >
       <View style={styles.securityContainer}>
+
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
         <View style={styles.securityHeader}>
           <View>
-            <Text style={styles.securityEyebrow}>SCAMSHIELD AI</Text>
-            <Text style={styles.securityTitle}>Security Center</Text>
+            <Text style={styles.securityEyebrow}>
+              SCAMSHIELD AI
+            </Text>
+
+            <Text style={styles.securityTitle}>
+              Security Center
+            </Text>
           </View>
+
           <View style={styles.protectedBadge}>
             <View style={styles.protectedDot} />
-            <Text style={styles.protectedText}>Protected</Text>
+
+            <Text style={styles.protectedText}>
+              Protected
+            </Text>
           </View>
         </View>
 
+        {/* =====================================================
+            READY CARD
+        ===================================================== */}
         <View style={styles.readyCard}>
           <View style={styles.readyIcon}>
             <Ionicons
@@ -27,15 +58,26 @@ export default function SecurityCenter({ onBack, onOtpAgent, onUrlAgent }) {
               color={COLORS.darkIcon}
             />
           </View>
+
           <View style={styles.readyTextContainer}>
-            <Text style={styles.readyTitle}>You are ready</Text>
+            <Text style={styles.readyTitle}>
+              You are ready
+            </Text>
+
             <Text style={styles.readyDescription}>
               Pick an agent below to see what it's watching for.
             </Text>
           </View>
         </View>
 
-        <View style={styles.agentsRow}>
+        {/* =====================================================
+            AGENTS
+        ===================================================== */}
+        <View style={styles.agentsGrid}>
+
+          {/* ===================================================
+              OTP AGENT
+          =================================================== */}
           <Pressable
             onPress={onOtpAgent}
             accessibilityRole="button"
@@ -46,16 +88,32 @@ export default function SecurityCenter({ onBack, onOtpAgent, onUrlAgent }) {
             ]}
           >
             <View
-              style={[styles.agentIconCircle, { backgroundColor: COLORS.cyan }]}
+              style={[
+                styles.agentIconCircle,
+                {
+                  backgroundColor: COLORS.cyan,
+                },
+              ]}
             >
-              <Ionicons name="key-outline" size={26} color={COLORS.darkIcon} />
+              <Ionicons
+                name="key-outline"
+                size={26}
+                color={COLORS.darkIcon}
+              />
             </View>
-            <Text style={styles.agentCardTitle}>OTP Agent</Text>
+
+            <Text style={styles.agentCardTitle}>
+              OTP Agent
+            </Text>
+
             <Text style={styles.agentCardSubtitle}>
               Real-time OTP protection
             </Text>
           </Pressable>
 
+          {/* ===================================================
+              URL AGENT
+          =================================================== */}
           <Pressable
             onPress={onUrlAgent}
             accessibilityRole="button"
@@ -66,17 +124,70 @@ export default function SecurityCenter({ onBack, onOtpAgent, onUrlAgent }) {
             ]}
           >
             <View
-              style={[styles.agentIconCircle, { backgroundColor: COLORS.teal }]}
+              style={[
+                styles.agentIconCircle,
+                {
+                  backgroundColor: COLORS.teal,
+                },
+              ]}
             >
-              <Ionicons name="link-outline" size={26} color={COLORS.darkIcon} />
+              <Ionicons
+                name="link-outline"
+                size={26}
+                color={COLORS.darkIcon}
+              />
             </View>
-            <Text style={styles.agentCardTitle}>URL Agent</Text>
+
+            <Text style={styles.agentCardTitle}>
+              URL Agent
+            </Text>
+
             <Text style={styles.agentCardSubtitle}>
               Link & spam detection
             </Text>
           </Pressable>
+
+          {/* ===================================================
+              CONTACT AGENT
+          =================================================== */}
+          <Pressable
+            onPress={onContactAgent}
+            accessibilityRole="button"
+            accessibilityLabel="Open Contact Agent"
+            style={({ pressed }) => [
+              styles.agentCard,
+              styles.contactCard,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <View
+              style={[
+                styles.agentIconCircle,
+                {
+                  backgroundColor: COLORS.teal,
+                },
+              ]}
+            >
+              <Ionicons
+                name="people-outline"
+                size={26}
+                color={COLORS.darkIcon}
+              />
+            </View>
+
+            <Text style={styles.agentCardTitle}>
+              Contact Agent
+            </Text>
+
+            <Text style={styles.agentCardSubtitle}>
+              Sender & pattern checks
+            </Text>
+          </Pressable>
         </View>
 
+        {/* =====================================================
+            BACK
+        ===================================================== */}
         <Pressable
           onPress={onBack}
           accessibilityRole="button"
@@ -85,26 +196,35 @@ export default function SecurityCenter({ onBack, onOtpAgent, onUrlAgent }) {
             pressed && styles.skipPressed,
           ]}
         >
-          <Text style={styles.backButtonText}>View introduction again</Text>
+          <Text style={styles.backButtonText}>
+            View introduction again
+          </Text>
         </Pressable>
+
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
   securityContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
     paddingHorizontal: 28,
   },
+
   securityHeader: {
     paddingTop: 26,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
+
   securityEyebrow: {
     color: COLORS.teal,
     fontSize: 12,
@@ -112,12 +232,14 @@ const styles = StyleSheet.create({
     letterSpacing: 2.4,
     marginBottom: 8,
   },
+
   securityTitle: {
     color: COLORS.white,
     fontSize: 30,
     fontWeight: "700",
     letterSpacing: -0.8,
   },
+
   protectedBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -127,6 +249,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     marginTop: 3,
   },
+
   protectedDot: {
     width: 7,
     height: 7,
@@ -134,7 +257,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.teal,
     marginRight: 7,
   },
-  protectedText: { color: COLORS.white, fontSize: 12, fontWeight: "600" },
+
+  protectedText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
   readyCard: {
     minHeight: 150,
     borderRadius: 28,
@@ -146,6 +275,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+
   readyIcon: {
     width: 64,
     height: 64,
@@ -154,22 +284,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  readyTextContainer: { flex: 1, paddingLeft: 16 },
+
+  readyTextContainer: {
+    flex: 1,
+    paddingLeft: 16,
+  },
+
   readyTitle: {
     color: COLORS.white,
     fontSize: 21,
     fontWeight: "700",
     marginBottom: 8,
   },
-  readyDescription: { color: COLORS.muted, fontSize: 14, lineHeight: 21 },
 
-  agentsRow: {
+  readyDescription: {
+    color: COLORS.muted,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+
+  agentsGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 14,
     marginTop: 18,
   },
+
   agentCard: {
-    flex: 1,
+    width: "47%",
     minHeight: 150,
     borderRadius: 26,
     backgroundColor: COLORS.surface,
@@ -180,6 +322,11 @@ const styles = StyleSheet.create({
     paddingVertical: 22,
     paddingHorizontal: 12,
   },
+
+  contactCard: {
+    width: "100%",
+  },
+
   agentIconCircle: {
     width: 58,
     height: 58,
@@ -188,12 +335,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 14,
   },
+
   agentCardTitle: {
     color: COLORS.white,
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 6,
   },
+
   agentCardSubtitle: {
     color: COLORS.muted,
     fontSize: 12,
@@ -207,7 +356,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 16,
   },
-  backButtonText: { color: COLORS.muted, fontSize: 14, fontWeight: "500" },
-  buttonPressed: { opacity: 0.75, transform: [{ scale: 0.985 }] },
-  skipPressed: { opacity: 0.6 },
+
+  backButtonText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  buttonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.985 }],
+  },
+
+  skipPressed: {
+    opacity: 0.6,
+  },
 });

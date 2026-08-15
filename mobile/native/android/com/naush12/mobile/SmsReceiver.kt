@@ -7,29 +7,39 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.provider.ContactsContract
 import android.provider.Telephony
+import android.net.Uri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
-import org.json.JSONObject
 
 
 class SmsReceiver : BroadcastReceiver() {
 
     companion object {
 
-        // IMPORTANT:
-        // Must match the backend server's address
-        // (check constants/api.js)
+        // ========================================================
+        // BACKEND URLS
+        // ========================================================
 
         private const val BACKEND_URL_OTP =
-            "http://192.168.1.101:8000/analyze-sms"
+            "http://127.0.0.1:8000/analyze-sms"
 
         private const val BACKEND_URL_PHISHING =
-            "http://192.168.1.101:8000/analyze-url"
+            "http://127.0.0.1:8000/analyze-url"
+
+        private const val BACKEND_URL_CONTACT =
+            "http://127.0.0.1:8000/analyze-contact"
+
+
+        // ========================================================
+        // SHARED PREFERENCES
+        // ========================================================
 
         private const val PREFS_NAME =
             "sms_monitor"
@@ -38,6 +48,10 @@ class SmsReceiver : BroadcastReceiver() {
             "latest_sms_event"
     }
 
+
+    // ========================================================
+    // SMS RECEIVED
+    // ========================================================
 
     override fun onReceive(
         context: Context,
@@ -51,12 +65,15 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
 
+
         val pendingResult =
             goAsync()
+
 
         val messages =
             Telephony.Sms.Intents
                 .getMessagesFromIntent(intent)
+
 
         CoroutineScope(
             Dispatchers.IO
@@ -159,6 +176,34 @@ class SmsReceiver : BroadcastReceiver() {
 
 
                 // ============================================================
+                // CONTACT LOOKUP
+                // ============================================================
+
+                val isSaved =
+                    isSavedContact(
+                        context,
+                        sender
+                    )
+
+
+                val contactName =
+                    if (isSaved) {
+                        getContactName(
+                            context,
+                            sender
+                        )
+                    } else {
+                        null
+                    }
+
+
+                android.util.Log.d(
+                    "SmsReceiver",
+                    "Contact lookup: saved=$isSaved, name=$contactName"
+                )
+
+
+                // ============================================================
                 // ANALYZE SMS
                 // ============================================================
 
@@ -169,7 +214,9 @@ class SmsReceiver : BroadcastReceiver() {
                         originalBody = body,
                         foregroundApp = foregroundApp,
                         expectedOtp = expectedOtp,
-                        screenUnlocked = screenUnlocked
+                        screenUnlocked = screenUnlocked,
+                        isSavedContact = isSaved,
+                        contactName = contactName
                     )
 
 
@@ -178,18 +225,22 @@ class SmsReceiver : BroadcastReceiver() {
                 // ============================================================
 
                 saveLatestEvent(
-                    context,
-                    sender,
-                    body,
-                    foregroundApp,
-                    expectedOtp,
-                    screenUnlocked,
-                    result
+                    context = context,
+                    sender = sender,
+                    body = body,
+                    foregroundApp = foregroundApp,
+                    expectedOtp = expectedOtp,
+                    screenUnlocked = screenUnlocked,
+                    result = result
                 )
 
             } catch (e: Exception) {
 
-                e.printStackTrace()
+                android.util.Log.e(
+                    "SmsReceiver",
+                    "SMS processing failed: ${e.message}",
+                    e
+                )
 
             } finally {
 
@@ -200,7 +251,99 @@ class SmsReceiver : BroadcastReceiver() {
 
 
     // ========================================================
-    // BACKEND REQUEST
+    // CONTACT LOOKUP
+    // ========================================================
+
+    private fun isSavedContact(
+        context: Context,
+        phoneNumber: String
+    ): Boolean {
+
+        return try {
+
+            val uri =
+                Uri.withAppendedPath(
+                    ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+                    Uri.encode(phoneNumber)
+                )
+
+
+            context.contentResolver.query(
+                uri,
+                arrayOf(
+                    ContactsContract.PhoneLookup._ID
+                ),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+
+                cursor.moveToFirst()
+
+            } ?: false
+
+        } catch (e: SecurityException) {
+
+            android.util.Log.w(
+                "SmsReceiver",
+                "READ_CONTACTS not granted, skipping contact check"
+            )
+
+            false
+
+        } catch (e: Exception) {
+
+            android.util.Log.e(
+                "SmsReceiver",
+                "Contact lookup failed: ${e.message}"
+            )
+
+            false
+        }
+    }
+
+
+    private fun getContactName(
+        context: Context,
+        phoneNumber: String
+    ): String? {
+
+        return try {
+
+            val uri =
+                Uri.withAppendedPath(
+                    ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+                    Uri.encode(phoneNumber)
+                )
+
+
+            context.contentResolver.query(
+                uri,
+                arrayOf(
+                    ContactsContract.PhoneLookup.DISPLAY_NAME
+                ),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+
+                if (cursor.moveToFirst()) {
+                    cursor.getString(0)
+                } else {
+                    null
+                }
+
+            }
+
+        } catch (e: Exception) {
+
+            null
+        }
+    }
+
+
+    // ========================================================
+    // BACKEND REQUESTS
     // ========================================================
 
     private fun analyzeWithBackend(
@@ -209,7 +352,9 @@ class SmsReceiver : BroadcastReceiver() {
         originalBody: String,
         foregroundApp: String,
         expectedOtp: Boolean,
-        screenUnlocked: Boolean
+        screenUnlocked: Boolean,
+        isSavedContact: Boolean,
+        contactName: String?
     ): JSONObject {
 
         val result =
@@ -310,12 +455,58 @@ class SmsReceiver : BroadcastReceiver() {
         }
 
 
+        // ====================================================
+        // CONTACT AGENT
+        // ====================================================
+
+        try {
+
+            val contactAnalysis =
+                makeContactBackendRequest(
+                    url = BACKEND_URL_CONTACT,
+                    sender = sender,
+                    body = originalBody,
+                    isSavedContact = isSavedContact,
+                    contactName = contactName
+                )
+
+
+            result.put(
+                "contact_analysis",
+                contactAnalysis
+            )
+
+        } catch (e: Exception) {
+
+            android.util.Log.e(
+                "SmsReceiver",
+                "Contact analysis failed: ${e.message}"
+            )
+
+            result.put(
+                "contact_analysis",
+                JSONObject().apply {
+
+                    put(
+                        "error",
+                        e.message
+                    )
+
+                    put(
+                        "level",
+                        "ERROR"
+                    )
+                }
+            )
+        }
+
+
         return result
     }
 
 
     // ========================================================
-    // BACKEND HTTP REQUEST
+    // OTP / URL BACKEND HTTP REQUEST
     // ========================================================
 
     private fun makeBackendRequest(
@@ -329,8 +520,7 @@ class SmsReceiver : BroadcastReceiver() {
 
         val connection =
             URL(url)
-                .openConnection()
-                    as HttpURLConnection
+                .openConnection() as HttpURLConnection
 
 
         connection.requestMethod =
@@ -418,11 +608,163 @@ class SmsReceiver : BroadcastReceiver() {
 
 
         val response =
-            connection.inputStream
-                .bufferedReader()
-                .use {
-                    it.readText()
-                }
+            if (responseCode in 200..299) {
+
+                connection.inputStream
+                    .bufferedReader()
+                    .use {
+                        it.readText()
+                    }
+
+            } else {
+
+                connection.errorStream
+                    ?.bufferedReader()
+                    ?.use {
+                        it.readText()
+                    }
+                    ?: ""
+            }
+
+
+        connection.disconnect()
+
+
+        if (
+            responseCode !in 200..299
+        ) {
+
+            throw Exception(
+                "Backend HTTP error: " +
+                    "$responseCode - $response"
+            )
+        }
+
+
+        return JSONObject(
+            response
+        )
+    }
+
+
+    // ========================================================
+    // CONTACT BACKEND HTTP REQUEST
+    // ========================================================
+
+    private fun makeContactBackendRequest(
+        url: String,
+        sender: String,
+        body: String,
+        isSavedContact: Boolean,
+        contactName: String?
+    ): JSONObject {
+
+        val connection =
+            URL(url)
+                .openConnection() as HttpURLConnection
+
+
+        connection.requestMethod =
+            "POST"
+
+
+        connection.connectTimeout =
+            8000
+
+
+        connection.readTimeout =
+            15000
+
+
+        connection.doOutput =
+            true
+
+
+        connection.setRequestProperty(
+            "Content-Type",
+            "application/json"
+        )
+
+
+        val json =
+            JSONObject()
+
+
+        json.put(
+            "sender",
+            sender
+        )
+
+
+        json.put(
+            "body",
+            body
+        )
+
+
+        json.put(
+            "timestamp",
+            System.currentTimeMillis()
+        )
+
+
+        json.put(
+            "source",
+            "android_sms_receiver"
+        )
+
+
+        json.put(
+            "is_saved_contact",
+            isSavedContact
+        )
+
+
+        if (
+            contactName != null
+        ) {
+
+            json.put(
+                "contact_name",
+                contactName
+            )
+        }
+
+
+        OutputStreamWriter(
+            connection.outputStream
+        ).use { writer ->
+
+            writer.write(
+                json.toString()
+            )
+
+            writer.flush()
+        }
+
+
+        val responseCode =
+            connection.responseCode
+
+
+        val response =
+            if (responseCode in 200..299) {
+
+                connection.inputStream
+                    .bufferedReader()
+                    .use {
+                        it.readText()
+                    }
+
+            } else {
+
+                connection.errorStream
+                    ?.bufferedReader()
+                    ?.use {
+                        it.readText()
+                    }
+                    ?: ""
+            }
 
 
         connection.disconnect()
@@ -471,7 +813,9 @@ class SmsReceiver : BroadcastReceiver() {
             contextualPattern.find(body)
 
 
-        if (contextualMatch != null) {
+        if (
+            contextualMatch != null
+        ) {
 
             return contextualMatch
                 .groupValues[2]
@@ -508,13 +852,19 @@ class SmsReceiver : BroadcastReceiver() {
         // 3. GENERIC NUMBER ONLY IF OTP CONTEXT EXISTS
         // ====================================================
 
-        if (hasOtpContext) {
+        if (
+            hasOtpContext
+        ) {
 
             val genericPattern =
-                Regex("\\b\\d{4,8}\\b")
+                Regex(
+                    "\\b\\d{4,8}\\b"
+                )
 
 
-            for (match in genericPattern.findAll(body)) {
+            for (
+                match in genericPattern.findAll(body)
+            ) {
 
                 val candidate =
                     match.value
@@ -616,7 +966,6 @@ class SmsReceiver : BroadcastReceiver() {
 
 
         // Look back 3 minutes
-
         val startTime =
             endTime -
                 (3 * 60 * 1000L)
@@ -793,7 +1142,9 @@ class SmsReceiver : BroadcastReceiver() {
         )
 
 
-        // Extract OTP analysis
+        // ====================================================
+        // OTP ANALYSIS
+        // ====================================================
 
         if (
             result.has("analysis")
@@ -815,7 +1166,9 @@ class SmsReceiver : BroadcastReceiver() {
         }
 
 
-        // Extract URL analysis
+        // ====================================================
+        // URL ANALYSIS
+        // ====================================================
 
         if (
             result.has("url_analysis")
@@ -836,6 +1189,34 @@ class SmsReceiver : BroadcastReceiver() {
             )
         }
 
+
+        // ====================================================
+        // CONTACT ANALYSIS
+        // ====================================================
+
+        if (
+            result.has("contact_analysis")
+        ) {
+
+            event.put(
+                "contact_analysis",
+                result.getJSONObject(
+                    "contact_analysis"
+                )
+            )
+
+        } else {
+
+            event.put(
+                "contact_analysis",
+                JSONObject()
+            )
+        }
+
+
+        // ====================================================
+        // SAVE TO SHARED PREFERENCES
+        // ====================================================
 
         context
             .getSharedPreferences(

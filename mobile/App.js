@@ -12,6 +12,7 @@ import SecurityCenter from "./components/SecurityCenter";
 import ScanScreen from "./components/ScanScreen";
 import OtpMonitoringScreen from "./components/OtpMonitoringScreen";
 import UrlAgentScreen from "./components/Urlagentscreen";
+import ContactAgentScreen from "./components/ContactAgentScreen";
 
 const STAGES = {
   ONBOARDING: "onboarding",
@@ -20,6 +21,7 @@ const STAGES = {
   SECURITY_CENTER: "security_center",
   OTP_AGENT: "otp_agent",
   URL_AGENT: "url_agent",
+  CONTACT_AGENT: "contact_agent",
   SCAN: "scan",
 };
 
@@ -27,9 +29,7 @@ export default function App() {
   const [step, setStep] = useState(0);
   const [stage, setStage] = useState(STAGES.ONBOARDING);
 
-  // "Scan a specific message" can now be launched from the URL Agent
-  // screen as well as (previously) directly from Security Center, so we
-  // remember where to send the user back to when they're done.
+  // Used when ScanScreen is launched from another agent.
   const [scanReturnStage, setScanReturnStage] = useState(
     STAGES.SECURITY_CENTER,
   );
@@ -68,11 +68,19 @@ export default function App() {
     setStage(STAGES.URL_AGENT);
   }
 
+  function handleContactAgent() {
+    setStage(STAGES.CONTACT_AGENT);
+  }
+
   function handleBackFromOtpAgent() {
     setStage(STAGES.SECURITY_CENTER);
   }
 
   function handleBackFromUrlAgent() {
+    setStage(STAGES.SECURITY_CENTER);
+  }
+
+  function handleBackFromContactAgent() {
     setStage(STAGES.SECURITY_CENTER);
   }
 
@@ -90,7 +98,9 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
 
-      {/* ONBOARDING */}
+      {/* =========================================================
+          ONBOARDING
+      ========================================================= */}
       {stage === STAGES.ONBOARDING && (
         <OnboardingScreen
           step={step}
@@ -99,35 +109,48 @@ export default function App() {
         />
       )}
 
-      {/* PERMISSIONS */}
+      {/* =========================================================
+          PERMISSIONS
+      ========================================================= */}
       {stage === STAGES.PERMISSIONS && (
         <PermissionsScreen
           onGrantPermissions={handleGrantPermissions}
         />
       )}
 
-      {/* DEVICE DATA / SMS INBOX */}
+      {/* =========================================================
+          DEVICE DATA / SMS INBOX
+      ========================================================= */}
       {stage === STAGES.DEVICE_DATA && (
         <DeviceDataScreen
           onContinue={handleContinueFromDeviceData}
         />
       )}
 
-      {/* SECURITY CENTER */}
+      {/* =========================================================
+          SECURITY CENTER
+      ========================================================= */}
       {stage === STAGES.SECURITY_CENTER && (
         <SecurityCenter
           onBack={handleBackToIntroduction}
           onOtpAgent={handleOtpAgent}
           onUrlAgent={handleUrlAgent}
+          onContactAgent={handleContactAgent}
         />
       )}
 
-      {/* OTP AGENT - real-time OTP monitoring (native module + backend) */}
+      {/* =========================================================
+          OTP AGENT
+      ========================================================= */}
       {stage === STAGES.OTP_AGENT && (
-        <OtpMonitoringScreen onBack={handleBackFromOtpAgent} />
+        <OtpMonitoringScreen
+          onBack={handleBackFromOtpAgent}
+        />
       )}
 
-      {/* URL AGENT - last 3 messages + real-time URL/spam monitoring */}
+      {/* =========================================================
+          URL AGENT
+      ========================================================= */}
       {stage === STAGES.URL_AGENT && (
         <UrlAgentScreen
           onBack={handleBackFromUrlAgent}
@@ -135,7 +158,18 @@ export default function App() {
         />
       )}
 
-      {/* SCAN A MESSAGE - URL agent (paste text/link -> /analyze-url) */}
+      {/* =========================================================
+          CONTACT AGENT
+      ========================================================= */}
+      {stage === STAGES.CONTACT_AGENT && (
+        <ContactAgentScreen
+          onBack={handleBackFromContactAgent}
+        />
+      )}
+
+      {/* =========================================================
+          SCAN A MESSAGE
+      ========================================================= */}
       {stage === STAGES.SCAN && (
         <ScanScreen
           onBack={handleBackFromScan}
