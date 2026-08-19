@@ -36,6 +36,9 @@ class SmsReceiver : BroadcastReceiver() {
         private const val BACKEND_URL_CONTACT =
             "http://127.0.0.1:8000/analyze-contact"
 
+        private const val BACKEND_URL_PATTERN =
+            "http://127.0.0.1:8000/analyze-pattern"
+
 
         // ========================================================
         // SHARED PREFERENCES
@@ -456,6 +459,52 @@ class SmsReceiver : BroadcastReceiver() {
 
 
         // ====================================================
+        // PATTERN AGENT
+        // ====================================================
+
+        try {
+
+            val patternAnalysis =
+                makeBackendRequest(
+                    url = BACKEND_URL_PATTERN,
+                    sender = sender,
+                    body = originalBody,
+                    foregroundApp = foregroundApp,
+                    expectedOtp = expectedOtp,
+                    screenUnlocked = screenUnlocked
+                )
+
+            result.put(
+                "pattern_analysis",
+                patternAnalysis
+            )
+
+        } catch (e: Exception) {
+
+            android.util.Log.e(
+                "SmsReceiver",
+                "Pattern analysis failed: ${e.message}"
+            )
+
+            result.put(
+                "pattern_analysis",
+                JSONObject().apply {
+
+                    put(
+                        "error",
+                        e.message
+                    )
+
+                    put(
+                        "pattern_risk",
+                        "UNKNOWN"
+                    )
+                }
+            )
+        }
+
+
+        // ====================================================
         // CONTACT AGENT
         // ====================================================
 
@@ -652,6 +701,146 @@ class SmsReceiver : BroadcastReceiver() {
     // ========================================================
 
     private fun makeContactBackendRequest(
+        url: String,
+        sender: String,
+        body: String,
+        isSavedContact: Boolean,
+        contactName: String?
+    ): JSONObject {
+
+        val connection =
+            URL(url)
+                .openConnection() as HttpURLConnection
+
+
+        connection.requestMethod =
+            "POST"
+
+
+        connection.connectTimeout =
+            8000
+
+
+        connection.readTimeout =
+            15000
+
+
+        connection.doOutput =
+            true
+
+
+        connection.setRequestProperty(
+            "Content-Type",
+            "application/json"
+        )
+
+
+        val json =
+            JSONObject()
+
+
+        json.put(
+            "sender",
+            sender
+        )
+
+
+        json.put(
+            "body",
+            body
+        )
+
+
+        json.put(
+            "timestamp",
+            System.currentTimeMillis()
+        )
+
+
+        json.put(
+            "source",
+            "android_sms_receiver"
+        )
+
+
+        json.put(
+            "is_saved_contact",
+            isSavedContact
+        )
+
+
+        if (
+            contactName != null
+        ) {
+
+            json.put(
+                "contact_name",
+                contactName
+            )
+        }
+
+
+        OutputStreamWriter(
+            connection.outputStream
+        ).use { writer ->
+
+            writer.write(
+                json.toString()
+            )
+
+            writer.flush()
+        }
+
+
+        val responseCode =
+            connection.responseCode
+
+
+        val response =
+            if (responseCode in 200..299) {
+
+                connection.inputStream
+                    .bufferedReader()
+                    .use {
+                        it.readText()
+                    }
+
+            } else {
+
+                connection.errorStream
+                    ?.bufferedReader()
+                    ?.use {
+                        it.readText()
+                    }
+                    ?: ""
+            }
+
+
+        connection.disconnect()
+
+
+        if (
+            responseCode !in 200..299
+        ) {
+
+            throw Exception(
+                "Backend HTTP error: " +
+                    "$responseCode - $response"
+            )
+        }
+
+
+        return JSONObject(
+            response
+        )
+    }
+
+
+    // ========================================================
+    // PATTERN BACKEND HTTP REQUEST
+    // ========================================================
+
+    private fun makePatternBackendRequest(
         url: String,
         sender: String,
         body: String,
@@ -1185,6 +1374,30 @@ class SmsReceiver : BroadcastReceiver() {
 
             event.put(
                 "url_analysis",
+                JSONObject()
+            )
+        }
+
+
+        // ====================================================
+        // PATTERN ANALYSIS
+        // ====================================================
+
+        if (
+            result.has("pattern_analysis")
+        ) {
+
+            event.put(
+                "pattern_analysis",
+                result.getJSONObject(
+                    "pattern_analysis"
+                )
+            )
+
+        } else {
+
+            event.put(
+                "pattern_analysis",
                 JSONObject()
             )
         }

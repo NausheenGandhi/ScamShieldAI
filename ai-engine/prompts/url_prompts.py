@@ -89,6 +89,16 @@ Brand's known official domain: {brand_domain}
 """
 
 
+# ============================================================
+# EXPLANATION_PROMPT (patched — no markdown)
+# ============================================================
+#
+# Replace the existing EXPLANATION_PROMPT in url_prompts.py with this.
+# The only change: plain "Label:" text instead of "**Label:**" markdown,
+# since the React Native <Text> component in UrlAgentScreen.js renders
+# raw characters and doesn't parse markdown - it was showing literal
+# asterisks on screen instead of bold text.
+
 EXPLANATION_PROMPT = """\
 You are explaining an SMS security check to a non-technical user, including
 older adults who may not be familiar with security jargon.
@@ -102,6 +112,14 @@ into a short message for the user with exactly three parts, in this order:
    "URL", say "the sender's info doesn't match" instead of "domain
    mismatch", etc.).
 3. What to do - one concrete, actionable instruction.
+
+Format each part as plain text on its own line, labeled exactly like this
+(no markdown, no asterisks, no bold formatting - this is displayed in an
+app that shows raw text as-is):
+
+Decision: <one sentence>
+Why: <plain-language evidence>
+What to do: <one instruction>
 
 Keep the whole thing to four sentences maximum. Do not invent any
 evidence that isn't in the analyst's reasoning below.

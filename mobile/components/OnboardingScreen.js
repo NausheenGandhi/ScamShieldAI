@@ -27,16 +27,16 @@ export const INTRO_STEPS = [
   {
     icon: "hardware-chip-outline",
     eyebrow: "MULTI-AGENT ENGINE",
-    title: "Six AI agents. One verdict.",
+    title: "Five AI agents. One verdict.",
     description:
       "Contact, URL, Pattern, OTP, Blockchain and Coordinator agents analyse each message independently, then fuse their findings into a single risk score.",
   },
   {
     icon: "scan-outline",
     eyebrow: "TOTAL COVERAGE",
-    title: "Smishing, links, QR & OTP",
+    title: "Smishing, links, & OTP",
     description:
-      "Detects phishing SMS, look-alike domains, malicious QR payloads, unsolicited OTP requests and SIM-swap indicators.",
+      "Detects phishing SMS, look-alike domains, unsolicited OTP requests and SIM-swap indicators.",
   },
   {
     icon: "cube-outline",

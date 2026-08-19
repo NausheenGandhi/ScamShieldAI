@@ -1576,6 +1576,14 @@ export default function ContactAgentScreen({
       ? liveEvent.contact_analysis
       : null;
 
+  const livePatternResult =
+    liveEvent?.pattern_analysis &&
+    Object.keys(
+      liveEvent.pattern_analysis,
+    ).length > 0
+      ? liveEvent.pattern_analysis
+      : null;
+
   /* ==========================================================
      RENDER
   ========================================================== */
@@ -1764,6 +1772,65 @@ export default function ContactAgentScreen({
               automatically be analyzed by
               the Contact Agent.
             </Text>
+          </View>
+        )}
+
+        {livePatternResult && (
+          <View
+            style={[
+              styles.card,
+              {
+                marginTop: 16,
+                borderColor: "#1F5F77",
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <Text
+              style={styles.sectionTitle}
+            >
+              Pattern Risk
+            </Text>
+
+            <Text
+              style={[
+                styles.detailValue,
+                {
+                  color:
+                    livePatternResult.pattern_risk === "HIGH"
+                      ? "#FF5C5C"
+                      : livePatternResult.pattern_risk === "MEDIUM"
+                        ? "#FFB020"
+                        : "#3DDC97",
+                  marginBottom: 8,
+                },
+              ]}
+            >
+              {livePatternResult.pattern_risk || livePatternResult.pattern?.risk || "UNKNOWN"}
+            </Text>
+
+            <Text
+              style={styles.detailLabel}
+            >
+              Score: {livePatternResult.pattern_score ?? livePatternResult.pattern?.score ?? "n/a"}
+            </Text>
+
+            <Text
+              style={styles.detailLabel}
+            >
+              Signals: {Object.entries(livePatternResult.signals || {})
+                .filter(([, value]) => Boolean(value))
+                .map(([key]) => key.replace(/_/g, " "))
+                .join(", ") || "none"}
+            </Text>
+
+            {(livePatternResult.reasons || []).length > 0 && (
+              <Text
+                style={styles.detailText}
+              >
+                {livePatternResult.reasons.slice(0, 3).join(" ")}
+              </Text>
+            )}
           </View>
         )}
 

@@ -1,0 +1,1077 @@
+[
+    {
+        "test_id": "L01",
+        "category": "legitimate",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://www.google.com/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Visit https://www.google.com/ for more information.",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://www.google.com/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message reads like a normal informational message, directing the user to a well-known and established brand's official website. The URL provided matches the brand being referenced, and the domain registration information shows that the domain has been registered since 1997, which aligns with the age of the company. The page content summary also confirms that the webpage is the official Google search engine interface. There are no phishing cues, such as urgency or requests for sensitive information, and the message does not promote any suspicious activities. The redirect chain is straightforward, with no suspicious redirects.",
+            "brief_reason": "The message appears to be a legitimate informational message directing the user to Google's official website.",
+            "short_explanation": "This message is safe. The key evidence is that the link provided matches the well-known brand being referenced, and the domain has been registered for a long time, which suggests it's legitimate. To proceed, you can click on the link to visit the official Google search engine interface. You can trust this message because it appears to be a normal informational message from a reputable company.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.google.com/"
+                ],
+                "final_url": "https://www.google.com/",
+                "domain_info": {
+                    "domain": "www.google.com",
+                    "registrar": "MarkMonitor, Inc.",
+                    "creation_date": "1997-09-15 04:00:00+00:00",
+                    "age_days": 10562,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent Google, a technology company, and its purpose is to provide a search engine interface for users to input queries and retrieve relevant results. The page also offers various tools and settings, such as language options, search history, and privacy controls. The overall design and functionality suggest that this is the main search page for Google's online search engine.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Google",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "L02",
+        "category": "legitimate",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://www.microsoft.com/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Visit https://www.microsoft.com/ for more information.",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://www.microsoft.com/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message reads like a normal information-providing message and does not contain any spam or phishing patterns. The URL provided matches a well-known brand, Microsoft, and the redirect chain confirms that it leads to the actual Microsoft domain. The page content summary also supports the claim that the webpage is a legitimate Microsoft support or error page. The lack of urgency, threats, or requests for sensitive information further supports the legitimacy of the message.",
+            "brief_reason": "The message appears to be a genuine information-providing message from Microsoft.",
+            "short_explanation": "This message is safe. The key evidence is that the link matches a well-known brand, Microsoft, and the page content appears to be a legitimate Microsoft support page. To proceed, you can click on the link if you need to access the Microsoft support page. You can trust this message because it does not ask for sensitive information or create a sense of urgency.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.microsoft.com/"
+                ],
+                "final_url": "https://www.microsoft.com/",
+                "domain_info": {
+                    "domain": "www.microsoft.com",
+                    "error": "WHOIS lookup failed: [WinError 10054] An existing connection was forcibly closed by the remote host"
+                },
+                "html_summary": "This webpage appears to represent Microsoft, a technology company. The page seems to be a support or error page, as it informs the user that their request has been blocked and provides links to various Microsoft products and services. The purpose of the page is likely to assist users in resolving issues or navigating to other areas of the Microsoft website.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Microsoft",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "L03",
+        "category": "legitimate",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://www.amazon.in/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Visit https://www.amazon.in/ for more information.",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://www.amazon.in/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message reads like a normal informational message and does not contain any spam or phishing patterns. The URL provided matches a well-established domain and the domain registration info shows that it was created in 2005, which suggests that it is a legitimate domain. The redirect chain also confirms that the URL is legitimate. The message does not request any sensitive information or contain any urgent threats, which further supports the conclusion that it is legitimate.",
+            "brief_reason": "The message appears to be a genuine informational message from a well-established domain.",
+            "short_explanation": "This message is safe. The key evidence is that the link provided matches a well-established domain that has been around since 2005, and the message does not ask for any sensitive information. You can safely read the message and consider visiting the link if you're interested. If you have any further concerns, feel free to ask.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.amazon.in/"
+                ],
+                "final_url": "https://www.amazon.in/",
+                "domain_info": {
+                    "domain": "www.amazon.in",
+                    "registrar": "MarkMonitor, Inc.",
+                    "creation_date": "2005-02-11 11:14:14.378000+00:00",
+                    "age_days": 7856,
+                    "error": null
+                },
+                "html_summary": "Page returned no readable text content.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Amazon",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "L04",
+        "category": "legitimate",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://www.paypal.com/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Visit https://www.paypal.com/ for more information.",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://www.paypal.com/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message reads like a normal informational message, directing the user to the official PayPal website for more information. The redirect chain and domain registration info do not raise any red flags. The page content summary confirms that the webpage represents PayPal, a digital payment platform, and its purpose is to inform users about the various services and features offered by PayPal. The brand-domain match data, although incomplete, does not indicate any mismatch between the claimed brand and the actual destination domain.",
+            "brief_reason": "The message appears to be a genuine informational message from PayPal.",
+            "short_explanation": "This message is safe. The key evidence is that the message directs you to the official PayPal website and the sender's info matches, which suggests it's a genuine message from PayPal. To proceed, you can safely visit the PayPal website by clicking on the link if you need more information about their services.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.paypal.com/",
+                    "https://www.paypal.com/in/home"
+                ],
+                "final_url": "https://www.paypal.com/in/home",
+                "domain_info": {
+                    "domain": "www.paypal.com",
+                    "registrar": null,
+                    "creation_date": null,
+                    "age_days": null,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent PayPal, a digital payment platform. Its purpose is to inform users about the various services and features offered by PayPal, including secure payments, money transfers, and online shopping, with the goal of encouraging users to download the PayPal app or sign up for an account. The webpage aims to showcase the convenience, security, and benefits of using PayPal for personal and business transactions.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "PayPal",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "L05",
+        "category": "legitimate",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://github.com/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Visit https://github.com/ for more information.",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://github.com/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message directs to https://github.com/, which matches the expected domain for GitHub, a well-known software development platform. The page content summary confirms that the webpage represents GitHub and provides tools and services for developers. There is no evidence of spam or phishing patterns, such as urgency, threats, or requests for sensitive information. The redirect chain is straightforward, and the domain registration info, although incomplete due to a WHOIS lookup error, does not raise any red flags. The message appears to be a genuine informational message.",
+            "brief_reason": "The message links to the official GitHub domain and does not exhibit any malicious patterns.",
+            "short_explanation": "This message is safe. The key evidence is that the link goes to a well-known website, GitHub, and the page content matches what you would expect from GitHub. To proceed, you can click on the link if you're interested in learning more about GitHub's tools and services for developers.",
+            "context": {
+                "redirect_chain": [
+                    "https://github.com/"
+                ],
+                "final_url": "https://github.com/",
+                "domain_info": {
+                    "domain": "github.com",
+                    "error": "WHOIS lookup failed: [WinError 10054] An existing connection was forcibly closed by the remote host"
+                },
+                "html_summary": "This webpage appears to represent GitHub, a software development platform, and its purpose is to provide tools and services for developers to build, collaborate, and ship software quickly and securely. The webpage highlights GitHub's features, such as its AI-powered coding assistant Copilot, automation tools, and security measures, and showcases its use by various companies and industries. Overall, the webpage aims to promote GitHub as a comprehensive platform for software development and collaboration.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "github",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "L06",
+        "category": "legitimate",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://www.apple.com/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Visit https://www.apple.com/ for more information.",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://www.apple.com/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message reads like a normal informational message, directing the user to the official Apple website for more information. The redirect chain and domain registration info confirm that the URL is indeed the official Apple website. The page content summary also matches the expected content of Apple's official website, promoting and selling Apple products and services. There are no phishing cues, such as urgency or requests for sensitive information, and the message does not exhibit any spam patterns. The brand-domain match data is consistent, with the URL matching the expected domain of Apple's official website.",
+            "brief_reason": "The message appears to be a genuine informational message from Apple.",
+            "short_explanation": "This message is safe. The key evidence is that the link goes to the official Apple website, and the sender's info matches what we'd expect from Apple. To proceed, you can click on the link to visit the Apple website for more information.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.apple.com/"
+                ],
+                "final_url": "https://www.apple.com/",
+                "domain_info": {
+                    "domain": "www.apple.com",
+                    "registrar": null,
+                    "creation_date": null,
+                    "age_days": null,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent Apple, a technology company, and its purpose is to promote and sell Apple's various products, including Macs, iPads, iPhones, and Apple Watches, as well as offer services such as trade-ins, gift cards, and entertainment content through Apple TV. The page also provides information on special offers, discounts, and promotions available to customers. Additionally, it showcases Apple's financial services, including the Apple Card, and provides details on how to apply and use these services.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Apple",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "T01",
+        "category": "typosquatting",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://paypa1.example/verify",
+        "brand_impersonated": "PayPal",
+        "verdict": "PASS",
+        "input": "Your PayPal account requires verification. Please visit https://paypa1.example/verify",
+        "response": {
+            "brand_impersonated": "PayPal",
+            "url": "https://paypa1.example/verify",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message attempts to impersonate PayPal by claiming the recipient's account requires verification, but the provided URL does not match the official PayPal domain. The domain 'paypa1.example' appears to be a typo or variation of the legitimate PayPal domain, which is a common phishing tactic. The failure to connect to the page and the WHOIS lookup error suggest that the domain may be recently registered or not properly configured, further supporting the conclusion that this is a phishing attempt. The request for verification also creates a sense of urgency, which is a typical phishing cue.",
+            "brief_reason": "The message impersonates PayPal with a suspicious URL.",
+            "short_explanation": "This message is likely a scam. The key evidence is that the link provided doesn't match the official PayPal website, and the sender's info doesn't match either, with a suspicious domain name like 'paypa1.example' that seems to be a fake version of the real PayPal domain. To stay safe, do not click on the link or respond to the message. You can simply delete the message to avoid any potential harm.",
+            "context": {
+                "redirect_chain": [
+                    "https://paypa1.example/verify"
+                ],
+                "final_url": "https://paypa1.example/verify",
+                "domain_info": {
+                    "domain": "paypa1.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='paypa1.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='paypa1.example', port=443): Failed to resolve 'paypa1.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "PayPal",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='paypa1.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='paypa1.example', port=443): Failed to resolve 'paypa1.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "T02",
+        "category": "typosquatting",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://g00gle.example/login",
+        "brand_impersonated": "Google",
+        "verdict": "PASS",
+        "input": "Your Google account requires verification. Visit https://g00gle.example/login",
+        "response": {
+            "brand_impersonated": "Google",
+            "url": "https://g00gle.example/login",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message attempts to impersonate Google by using a similar domain name 'g00gle.example', which is a common phishing tactic. The URL provided does not match the official Google domain, and the domain registration information is unavailable due to a WHOIS lookup failure. The page content summary also indicates a connection failure, suggesting that the domain may not be legitimate. The message creates a sense of urgency by stating that the account 'requires verification', which is a typical phishing cue. The brand-domain mismatch and the suspicious URL are strong indicators of phishing.",
+            "brief_reason": "The message impersonates Google with a similar domain name and creates a sense of urgency.",
+            "short_explanation": "This message is likely a scam. The key evidence is that the link and the sender's info don't match what we'd expect from Google, and the message tries to create a sense of urgency by saying your account needs verification. To stay safe, do not click on the link in the message.",
+            "context": {
+                "redirect_chain": [
+                    "https://g00gle.example/login"
+                ],
+                "final_url": "https://g00gle.example/login",
+                "domain_info": {
+                    "domain": "g00gle.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='g00gle.example', port=443): Max retries exceeded with url: /login (Caused by NameResolutionError(\"HTTPSConnection(host='g00gle.example', port=443): Failed to resolve 'g00gle.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Google",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='g00gle.example', port=443): Max retries exceeded with url: /login (Caused by NameResolutionError(\"HTTPSConnection(host='g00gle.example', port=443): Failed to resolve 'g00gle.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "T03",
+        "category": "typosquatting",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://micros0ft.example/security",
+        "brand_impersonated": "Microsoft",
+        "verdict": "PASS",
+        "input": "Microsoft security alert. Verify your account at https://micros0ft.example/security",
+        "response": {
+            "brand_impersonated": "Microsoft",
+            "url": "https://micros0ft.example/security",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message claims to be from Microsoft but directs the user to a suspicious URL https://micros0ft.example/security, which does not match the official Microsoft domain. The domain registration info shows a WHOIS lookup failure, and the page content summary indicates a connection issue, suggesting the domain may be recently registered or not legitimate. The use of 'micros0ft' instead of 'microsoft' is a clear attempt to impersonate the brand. These factors strongly indicate a phishing attempt.",
+            "brief_reason": "The message attempts to impersonate Microsoft with a suspicious URL.",
+            "short_explanation": "This message is likely a scam. The key evidence is that the link goes to a suspicious website that pretends to be Microsoft, but the sender's info doesn't match the real Microsoft. To stay safe, do not click on the link in the message.",
+            "context": {
+                "redirect_chain": [
+                    "https://micros0ft.example/security"
+                ],
+                "final_url": "https://micros0ft.example/security",
+                "domain_info": {
+                    "domain": "micros0ft.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='micros0ft.example', port=443): Max retries exceeded with url: /security (Caused by NameResolutionError(\"HTTPSConnection(host='micros0ft.example', port=443): Failed to resolve 'micros0ft.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Microsoft",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='micros0ft.example', port=443): Max retries exceeded with url: /security (Caused by NameResolutionError(\"HTTPSConnection(host='micros0ft.example', port=443): Failed to resolve 'micros0ft.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "T04",
+        "category": "typosquatting",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://amaz0n.example/verify",
+        "brand_impersonated": "Amazon",
+        "verdict": "PASS",
+        "input": "Your Amazon account needs verification. Visit https://amaz0n.example/verify",
+        "response": {
+            "brand_impersonated": "Amazon",
+            "url": "https://amaz0n.example/verify",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message claims to be from Amazon but directs to 'amaz0n.example', which does not match Amazon's official domain. The domain registration info shows a WHOIS lookup failure, and the page content summary indicates a connection failure, suggesting the domain may be recently registered or not legitimate. The use of 'amaz0n' instead of 'amazon' is a common phishing tactic to impersonate the brand. The message creates a sense of urgency by stating the account needs verification, which is a typical phishing cue.",
+            "brief_reason": "The message impersonates Amazon with a suspicious URL.",
+            "short_explanation": "This message is likely a scam. The key evidence is that the link goes to \"amaz0n.example\", which is not a real Amazon website, and the sender's info doesn't match Amazon's official domain. To stay safe, do not click on the link in the message. You can ignore the message and verify your account directly through the official Amazon website if you're concerned about your account.",
+            "context": {
+                "redirect_chain": [
+                    "https://amaz0n.example/verify"
+                ],
+                "final_url": "https://amaz0n.example/verify",
+                "domain_info": {
+                    "domain": "amaz0n.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='amaz0n.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='amaz0n.example', port=443): Failed to resolve 'amaz0n.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Amazon",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='amaz0n.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='amaz0n.example', port=443): Failed to resolve 'amaz0n.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "T05",
+        "category": "typosquatting",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://app1e.example/verify",
+        "brand_impersonated": "Apple",
+        "verdict": "PASS",
+        "input": "Your Apple ID requires verification. Visit https://app1e.example/verify",
+        "response": {
+            "brand_impersonated": "Apple",
+            "url": "https://app1e.example/verify",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message claims to be from Apple, requiring verification of the recipient's Apple ID, but the provided URL does not match Apple's official domain. The domain 'app1e.example' appears to be an attempt to impersonate Apple, with a similar spelling. The failure to connect to the page and the lack of WHOIS lookup information for the domain further support the conclusion that this is a phishing attempt. The urgency implied by 'requires verification' also aligns with common phishing tactics.",
+            "brief_reason": "The message impersonates Apple with a suspicious URL.",
+            "short_explanation": "This message is likely a scam. The reason is that the link provided doesn't match Apple's official website, and the sender's info doesn't match Apple's, with a similar but incorrect spelling of the company name. To stay safe, do not click on the link in the message. You can ignore and delete the message to protect your personal information.",
+            "context": {
+                "redirect_chain": [
+                    "https://app1e.example/verify"
+                ],
+                "final_url": "https://app1e.example/verify",
+                "domain_info": {
+                    "domain": "app1e.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='app1e.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='app1e.example', port=443): Failed to resolve 'app1e.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Apple",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='app1e.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='app1e.example', port=443): Failed to resolve 'app1e.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "T06",
+        "category": "typosquatting",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://githuub.example/login",
+        "brand_impersonated": "GitHub",
+        "verdict": "PASS",
+        "input": "GitHub security verification required. Visit https://githuub.example/login",
+        "response": {
+            "brand_impersonated": "GitHub",
+            "url": "https://githuub.example/login",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message attempts to impersonate GitHub by using a similar domain name 'githuub.example', which is a strong indication of phishing. The domain registration info shows a WHOIS lookup failure, and the page content summary indicates a connection failure, suggesting that the domain may be malicious or non-existent. The redirect chain and the provided URL point to a potentially fake GitHub login page, which is a common phishing tactic. The lack of a known official domain for the brand does not contradict the phishing verdict, as the message's intent is to deceive the recipient into revealing sensitive information.",
+            "brief_reason": "The message impersonates GitHub with a similar but fake domain name.",
+            "short_explanation": "This message is likely a scam. The key evidence is that the sender's info doesn't match GitHub's official domain, and the link points to a potentially fake login page. To stay safe, do not click on the link or enter any sensitive information. You can simply delete the message to avoid any potential harm.",
+            "context": {
+                "redirect_chain": [
+                    "https://githuub.example/login"
+                ],
+                "final_url": "https://githuub.example/login",
+                "domain_info": {
+                    "domain": "githuub.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='githuub.example', port=443): Max retries exceeded with url: /login (Caused by NameResolutionError(\"HTTPSConnection(host='githuub.example', port=443): Failed to resolve 'githuub.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "GitHub",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='githuub.example', port=443): Max retries exceeded with url: /login (Caused by NameResolutionError(\"HTTPSConnection(host='githuub.example', port=443): Failed to resolve 'githuub.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "B01",
+        "category": "brand_impersonation",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://paypal-security.example/",
+        "brand_impersonated": "PayPal",
+        "verdict": "PASS",
+        "input": "PayPal Security: Your account has been restricted. Verify immediately at https://paypal-security.example/",
+        "response": {
+            "brand_impersonated": "PayPal",
+            "url": "https://paypal-security.example/",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message claims to be from PayPal but directs the user to a domain that does not match the brand's known official domain, indicating a potential phishing attempt. The domain 'paypal-security.example' appears to be impersonating PayPal, and the WHOIS lookup failed, which could suggest a recently registered domain. The page content summary was unable to connect, which could imply that the domain is not properly set up or is malicious. The message creates a sense of urgency by stating the account has been restricted, which is a common phishing tactic. The lack of a known official domain for comparison and the failed connection attempts raise significant red flags.",
+            "brief_reason": "The message impersonates PayPal and directs to a suspicious domain.",
+            "short_explanation": "This message is likely a scam. The key evidence is that the link goes to a domain that doesn't match PayPal's official domain, and the sender's info doesn't match what we'd expect from PayPal. To stay safe, do not click on the link in the message. You can ignore the message and log in to your PayPal account directly to check if there are any issues with your account.",
+            "context": {
+                "redirect_chain": [
+                    "https://paypal-security.example/"
+                ],
+                "final_url": "https://paypal-security.example/",
+                "domain_info": {
+                    "domain": "paypal-security.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='paypal-security.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='paypal-security.example', port=443): Failed to resolve 'paypal-security.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "PayPal",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='paypal-security.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='paypal-security.example', port=443): Failed to resolve 'paypal-security.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "B02",
+        "category": "brand_impersonation",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://google-account-verify.example/",
+        "brand_impersonated": "Google",
+        "verdict": "PASS",
+        "input": "Google Security Alert: Confirm your account at https://google-account-verify.example/",
+        "response": {
+            "brand_impersonated": "Google",
+            "url": "https://google-account-verify.example/",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message claims to be from Google but directs to a domain that does not match Google's official domain, indicating a potential phishing attempt. The domain registration info shows a WHOIS lookup failure, which could suggest an attempt to hide the domain's ownership. The page content summary reveals a connection failure, which might imply the domain is not properly set up or is malicious. The redirect chain does not provide any additional legitimate context. Overall, these factors strongly suggest a phishing attempt.",
+            "brief_reason": "The message impersonates Google but directs to an unverified domain.",
+            "short_explanation": "This message is likely a scam. The key evidence is that the link in the message doesn't match Google's official domain, and the sender's info doesn't match what we'd expect from Google. To stay safe, do not click on the link in the message. By avoiding the link, you can protect your personal information from potential phishing attempts.",
+            "context": {
+                "redirect_chain": [
+                    "https://google-account-verify.example/"
+                ],
+                "final_url": "https://google-account-verify.example/",
+                "domain_info": {
+                    "domain": "google-account-verify.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='google-account-verify.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='google-account-verify.example', port=443): Failed to resolve 'google-account-verify.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Google",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='google-account-verify.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='google-account-verify.example', port=443): Failed to resolve 'google-account-verify.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "B03",
+        "category": "brand_impersonation",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://microsoft-security.example/verify",
+        "brand_impersonated": "Microsoft",
+        "verdict": "PASS",
+        "input": "Microsoft Account Alert: https://microsoft-security.example/verify",
+        "response": {
+            "brand_impersonated": "Microsoft",
+            "url": "https://microsoft-security.example/verify",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message claims to be from Microsoft but directs to 'microsoft-security.example', which does not match Microsoft's official domain. The domain registration info is unavailable due to a WHOIS lookup failure, and the page content could not be retrieved, indicating potential malicious activity. The URL itself appears to be an attempt to impersonate Microsoft, which is a strong phishing signal. The lack of a known official domain for comparison does not diminish the suspicion raised by the mismatch between the claimed brand and the actual destination domain.",
+            "brief_reason": "The message impersonates Microsoft with a suspicious URL.",
+            "short_explanation": "This message is likely a scam. The reason is that the link in the message goes to a website that claims to be from Microsoft, but the sender's info doesn't match Microsoft's official domain. To stay safe, do not click on the link in the message. You can simply delete the message to avoid any potential harm.",
+            "context": {
+                "redirect_chain": [
+                    "https://microsoft-security.example/verify"
+                ],
+                "final_url": "https://microsoft-security.example/verify",
+                "domain_info": {
+                    "domain": "microsoft-security.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='microsoft-security.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='microsoft-security.example', port=443): Failed to resolve 'microsoft-security.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Microsoft",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='microsoft-security.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='microsoft-security.example', port=443): Failed to resolve 'microsoft-security.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "P01",
+        "category": "phishing",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://account-verification.example/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "URGENT! Your account will be suspended. Verify your identity immediately at https://account-verification.example/",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://account-verification.example/",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message creates a sense of urgency by stating the account will be suspended, which is a common phishing tactic. The provided URL does not match any known official domain of a brand, and the domain registration information could not be retrieved due to a WHOIS lookup failure. Furthermore, the page content summary indicates a failure to connect to the page, suggesting potential issues with the domain's legitimacy. The combination of these factors strongly suggests a phishing attempt.",
+            "brief_reason": "The message uses urgency and an unverified link to prompt action.",
+            "short_explanation": "This message is likely a scam. The key evidence is that it tries to rush you into action by saying your account will be suspended, and the link doesn't match any official website, which raises suspicions. To stay safe, do not click on the link in the message. By avoiding the link, you can protect your personal information from potential phishing attempts.",
+            "context": {
+                "redirect_chain": [
+                    "https://account-verification.example/"
+                ],
+                "final_url": "https://account-verification.example/",
+                "domain_info": {
+                    "domain": "account-verification.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='account-verification.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='account-verification.example', port=443): Failed to resolve 'account-verification.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": null,
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='account-verification.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='account-verification.example', port=443): Failed to resolve 'account-verification.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "P02",
+        "category": "phishing",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://secure-login.example/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Security alert! Unusual activity detected. Confirm your account now: https://secure-login.example/",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://secure-login.example/",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message creates a sense of urgency with 'Security alert! Unusual activity detected', which is a common phishing tactic. The request to 'Confirm your account now' is also typical of phishing attempts, as it asks for sensitive information. The provided URL does not match any known official domain of a brand, and the domain registration info and page content summary suggest suspicious activity, such as a failed WHOIS lookup and an inability to connect to the page. These factors, combined with the lack of a known official domain, strongly indicate a phishing attempt.",
+            "brief_reason": "The message uses urgency and requests sensitive info via a suspicious URL.",
+            "short_explanation": "This message is likely a scam. The key evidence is that it creates a sense of urgency and asks for sensitive information, and the link does not match any known official domain of a brand. To stay safe, do not click on the link or respond to the message. You can simply delete the message to protect your account and personal information.",
+            "context": {
+                "redirect_chain": [
+                    "https://secure-login.example/"
+                ],
+                "final_url": "https://secure-login.example/",
+                "domain_info": {
+                    "domain": "secure-login.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='secure-login.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='secure-login.example', port=443): Failed to resolve 'secure-login.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": null,
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='secure-login.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='secure-login.example', port=443): Failed to resolve 'secure-login.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "P03",
+        "category": "phishing",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://payment-update.example/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Your payment failed. Update your payment information at https://payment-update.example/",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://payment-update.example/",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message requests sensitive information, specifically payment details, which is a common phishing tactic. The provided URL does not match any known official domain of a brand, and the domain registration information could not be retrieved, suggesting potential malicious intent. The page content summary indicates a connection failure, which could imply that the domain is not properly set up or is fake. The lack of a known official domain for the brand being referenced further supports the conclusion that this is a phishing attempt.",
+            "brief_reason": "The message requests sensitive payment information via a suspicious URL.",
+            "short_explanation": "This message is likely a scam. The key evidence is that it asks for sensitive payment information and the link doesn't match any official brand website. To stay safe, do not click on the link or provide any personal information in response to this message. By ignoring it, you can avoid potential harm to your financial information.",
+            "context": {
+                "redirect_chain": [
+                    "https://payment-update.example/"
+                ],
+                "final_url": "https://payment-update.example/",
+                "domain_info": {
+                    "domain": "payment-update.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='payment-update.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='payment-update.example', port=443): Failed to resolve 'payment-update.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": null,
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='payment-update.example', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='payment-update.example', port=443): Failed to resolve 'payment-update.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "E01",
+        "category": "url_extraction",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://www.google.com/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Hello! Please visit our website for more information: https://www.google.com/",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://www.google.com/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message reads like a normal informational message and does not contain any spam or phishing patterns. The URL provided matches the expected domain of a well-known brand, Google. The domain registration info shows that the domain has been registered since 1997, which is consistent with the age of the company. The page content summary also confirms that the webpage is an official Google search page, which further supports the legitimacy of the message.",
+            "brief_reason": "The message appears to be a legitimate informational message from Google.",
+            "short_explanation": "This message is safe. The key evidence is that the link matches the expected domain of a well-known brand, Google, and the domain has been registered for a long time, which is consistent with the age of the company. You can safely open the link if you're interested in the information it provides. If you have any further concerns, feel free to ask.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.google.com/"
+                ],
+                "final_url": "https://www.google.com/",
+                "domain_info": {
+                    "domain": "www.google.com",
+                    "registrar": "MarkMonitor Inc.",
+                    "creation_date": "1997-09-15 04:00:00+00:00",
+                    "age_days": 10562,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent Google, a technology company, and its apparent purpose is to provide a search engine interface for users to input queries and retrieve relevant results. The page also offers various tools and settings, such as language options, search history, and privacy settings, to enhance the user experience. The presence of links to other Google services, like Gmail and Google apps, further suggests that this webpage is an official Google search page.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Google",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "E02",
+        "category": "url_extraction",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://paypa1.example/verify",
+        "brand_impersonated": "PayPal",
+        "verdict": "PASS",
+        "input": "Your account requires verification. Click here: https://paypa1.example/verify",
+        "response": {
+            "brand_impersonated": "PayPal",
+            "url": "https://paypa1.example/verify",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message attempts to impersonate a well-known brand, PayPal, by using a similar domain name 'paypa1.example'. The URL provided does not match the official domain of PayPal, which is a strong indication of phishing. The domain registration information is unavailable due to a WHOIS lookup failure, and the page content summary could not be retrieved, suggesting potential malicious activity. The message creates a sense of urgency by stating that the account requires verification, which is a common phishing tactic.",
+            "brief_reason": "The message impersonates PayPal with a similar domain name and attempts to create urgency for account verification.",
+            "short_explanation": "This message is likely a scam. The key evidence is that the link doesn't match the official PayPal website and the sender's info doesn't match, which are signs of impersonation. To stay safe, do not click on the link in the message. You can ignore and delete the message to avoid any potential harm.",
+            "context": {
+                "redirect_chain": [
+                    "https://paypa1.example/verify"
+                ],
+                "final_url": "https://paypa1.example/verify",
+                "domain_info": {
+                    "domain": "paypa1.example",
+                    "error": "WHOIS lookup failed: Whois command returned no output"
+                },
+                "html_summary": "Could not connect to page: HTTPSConnectionPool(host='paypa1.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='paypa1.example', port=443): Failed to resolve 'paypa1.example' ([Errno 11001] getaddrinfo failed)\"))",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "PayPal",
+                    "official_domain": null
+                },
+                "redirect_error": "Connection failed: HTTPSConnectionPool(host='paypa1.example', port=443): Max retries exceeded with url: /verify (Caused by NameResolutionError(\"HTTPSConnection(host='paypa1.example', port=443): Failed to resolve 'paypa1.example' ([Errno 11001] getaddrinfo failed)\"))"
+            }
+        }
+    },
+    {
+        "test_id": "M01",
+        "category": "multiple_urls",
+        "expected": "malicious",
+        "status_code": 200,
+        "actual_category": "phishing",
+        "is_malicious": true,
+        "confidence": "high",
+        "url": "https://google-account-verify.example/",
+        "brand_impersonated": "Google",
+        "verdict": "PASS",
+        "input": "Official website: https://www.google.com/ Verification: https://google-account-verify.example/",
+        "response": {
+            "brand_impersonated": "Google",
+            "url": "https://google-account-verify.example/",
+            "category": "phishing",
+            "is_malicious": true,
+            "confidence": "high",
+            "reasoning": "The message claims to be from Google but provides a verification link that does not match the known official Google domain. The domain registration info and redirect chain provided do not match the verification link given in the message, indicating a potential phishing attempt. The verification link 'https://google-account-verify.example/' does not align with the expected official Google domain, suggesting an attempt to impersonate Google. The context data supports the conclusion that this is a phishing attempt due to the mismatch between the claimed brand and the actual destination domain.",
+            "brief_reason": "The verification link does not match the official Google domain.",
+            "short_explanation": "This message is likely a scam. The reason is that the link provided in the message doesn't match the official Google website, and the sender's info doesn't match either. To stay safe, do not click on the link in the message. You can ignore and delete the message to avoid any potential harm.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.google.com/"
+                ],
+                "final_url": "https://www.google.com/",
+                "domain_info": {
+                    "domain": "www.google.com",
+                    "registrar": "MarkMonitor, Inc.",
+                    "creation_date": "1997-09-15 04:00:00+00:00",
+                    "age_days": 10562,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent Google, a technology company. The page seems to be a search results or homepage interface, with various links and settings related to searching, account management, and language preferences. Its purpose is to provide users with a gateway to Google's services, including search, advertising, and other applications.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Google",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "M02",
+        "category": "multiple_urls",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://www.microsoft.com/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Useful links: https://www.microsoft.com/ https://github.com/",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://www.microsoft.com/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message does not promote gambling, betting, adult content, crypto/investment schemes, or lottery-style prizes, and it does not contain any bulk promotion or donation requests. The provided links are from well-known and reputable sources, Microsoft and GitHub. The domain registration info shows that the domain 'www.microsoft.com' has been registered since 1991, which is consistent with the brand's age. The page content summary also confirms that the webpage represents Microsoft and provides support or error information, which aligns with the brand's purpose.",
+            "brief_reason": "The message contains links to reputable sources and does not exhibit any malicious patterns.",
+            "short_explanation": "This message is safe. The key evidence is that the links are from well-known and reputable sources, Microsoft and GitHub, and the sender's info matches the brand. To proceed, you can click on the link to get the support or error information you need. Remember to always be cautious when clicking on links, but in this case, it appears to be a legitimate message from Microsoft.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.microsoft.com/"
+                ],
+                "final_url": "https://www.microsoft.com/",
+                "domain_info": {
+                    "domain": "www.microsoft.com",
+                    "registrar": "MarkMonitor, Inc.",
+                    "creation_date": "1991-05-02 04:00:00+00:00",
+                    "age_days": 12890,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent Microsoft, a technology company. The page seems to be a support or error page, as it informs the user that their request has been blocked, but also provides links to various Microsoft products and services. The purpose of the page is likely to assist users in resolving issues or navigating to other areas of the Microsoft website.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Microsoft",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "F01",
+        "category": "false_positive_control",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://github.com/login",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Sign in to GitHub at https://github.com/login",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://github.com/login",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message reads like an account notice, which is a pattern that leans legitimate. The URL provided matches the brand being referenced, and the domain registration information shows that the domain 'github.com' has been registered since 2007, which suggests it is an established brand. The page content summary also confirms that the webpage is a legitimate GitHub sign-in page. There are no phishing cues, such as urgency or requests for sensitive information, in the message.",
+            "brief_reason": "The message appears to be a legitimate GitHub sign-in page with a matching domain and no suspicious content.",
+            "short_explanation": "This message is safe. The key evidence is that the link matches the brand being referenced, which is GitHub, and the domain has been registered since 2007, indicating it's an established brand. To proceed, you can click on the link to access the GitHub sign-in page. Remember to always verify the authenticity of messages, but in this case, the message appears to be a legitimate account notice from GitHub.",
+            "context": {
+                "redirect_chain": [
+                    "https://github.com/login"
+                ],
+                "final_url": "https://github.com/login",
+                "domain_info": {
+                    "domain": "github.com",
+                    "registrar": "MarkMonitor, Inc.",
+                    "creation_date": "2007-10-09 18:20:50+00:00",
+                    "age_days": 6885,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent GitHub, a software development platform. The purpose of the page is to allow users to sign in to their GitHub accounts, with options to create a new account, recover a forgotten password, or sign in using alternative methods. The page also provides links to GitHub's support resources, terms, and privacy information.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "GitHub",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "F02",
+        "category": "false_positive_control",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://accounts.google.com/",
+        "brand_impersonated": null,
+        "verdict": "PASS",
+        "input": "Manage your Google account at https://accounts.google.com/",
+        "response": {
+            "brand_impersonated": null,
+            "url": "https://accounts.google.com/",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message reads like a normal account notice, directing the user to manage their Google account at the official Google accounts page. The provided URL matches the brand being referenced, and the domain registration info shows that the domain has been registered since 1997, which is consistent with the age of the Google brand. The page content summary also confirms that the webpage is a legitimate Google sign-in page. The redirect chain appears to be a standard Google sign-in flow, further supporting the legitimacy of the message.",
+            "brief_reason": "The message is a legitimate account notice from Google.",
+            "short_explanation": "This message is safe. The key evidence is that the link matches the official Google website and the domain has been registered for a long time, which is consistent with the age of the Google brand. To proceed, you can click on the link to manage your Google account. If you're still unsure, you can always type the Google website address directly into your browser to access your account.",
+            "context": {
+                "redirect_chain": [
+                    "https://accounts.google.com/",
+                    "https://accounts.google.com/ServiceLogin?passive=1209600&continue=https%3A%2F%2Faccounts.google.com%2F&followup=https%3A%2F%2Faccounts.google.com%2F",
+                    "https://accounts.google.com/v3/signin/identifier?continue=https://accounts.google.com/&followup=https://accounts.google.com/&passive=1209600&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S1980230274:1786897981655888"
+                ],
+                "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https://accounts.google.com/&followup=https://accounts.google.com/&passive=1209600&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S1980230274:1786897981655888",
+                "domain_info": {
+                    "domain": "accounts.google.com",
+                    "registrar": "MarkMonitor, Inc.",
+                    "creation_date": "1997-09-15 04:00:00+00:00",
+                    "age_days": 10562,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent Google and is a sign-in page for Google Accounts, allowing users to access their accounts or create a new one. The page provides options for language selection and guest mode, as well as links to help, privacy, and terms. The purpose of the page is to facilitate secure and private access to Google services using a Google Account.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "Google",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "F03",
+        "category": "false_positive_control",
+        "expected": "legitimate",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": "https://www.paypal.com/signin",
+        "brand_impersonated": "PayPal",
+        "verdict": "PASS",
+        "input": "Visit PayPal securely at https://www.paypal.com/signin",
+        "response": {
+            "brand_impersonated": "PayPal",
+            "url": "https://www.paypal.com/signin",
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message appears to be a legitimate security check from PayPal, as indicated by the page content summary. The URL provided matches the expected domain for PayPal, and there are no obvious phishing cues such as urgency, threats, or requests for sensitive information. The redirect chain is straightforward, and the domain registration information, although incomplete, does not raise any immediate red flags. The message reads like a normal security notice from a well-known brand.",
+            "brief_reason": "The message appears to be a legitimate security check from PayPal.",
+            "short_explanation": "This message is likely safe. The key evidence is that the link provided matches the expected domain for PayPal and the message reads like a normal security notice from a well-known brand. To proceed, you can click on the link to complete the security check. If you're still unsure, it's always a good idea to contact PayPal directly to verify the message.",
+            "context": {
+                "redirect_chain": [
+                    "https://www.paypal.com/signin"
+                ],
+                "final_url": "https://www.paypal.com/signin",
+                "domain_info": {
+                    "domain": "www.paypal.com",
+                    "registrar": null,
+                    "creation_date": null,
+                    "age_days": null,
+                    "error": null
+                },
+                "html_summary": "This webpage appears to represent PayPal, a well-known online payment system. The purpose of the page seems to be to perform a security check, likely to verify the user's identity or ensure a secure transaction. The brief message suggests that the page is an intermediary step in a larger process, rather than a primary destination.",
+                "screenshot_summary": "Screenshot analysis disabled.",
+                "brand_domain": {
+                    "brand": "PayPal",
+                    "official_domain": null
+                },
+                "redirect_error": null
+            }
+        }
+    },
+    {
+        "test_id": "X01",
+        "category": "no_url",
+        "expected": "unknown",
+        "status_code": 200,
+        "actual_category": "legitimate",
+        "is_malicious": false,
+        "confidence": "high",
+        "url": null,
+        "brand_impersonated": null,
+        "verdict": "FAIL",
+        "input": "Hello, this message contains no URL.",
+        "response": {
+            "brand_impersonated": null,
+            "url": null,
+            "category": "legitimate",
+            "is_malicious": false,
+            "confidence": "high",
+            "reasoning": "The message does not promote gambling, betting, adult content, crypto/investment schemes, or lottery-style prizes, and it does not contain any URLs or requests for sensitive information. The message appears to be a simple greeting and does not exhibit any spam or phishing patterns. The lack of a URL and the absence of any suspicious content suggest that the message is legitimate. The context data supports this conclusion, as there is no redirect chain, domain registration info, or page content summary to analyze.",
+            "brief_reason": "The message is a simple greeting with no suspicious content.",
+            "short_explanation": "This message is safe. The key evidence is that it doesn't contain any links or ask for sensitive information, and it seems to be a simple greeting. To proceed, you can safely read and respond to the message if you wish. The message appears to be from someone who just wants to say hello, so you can treat it like any other normal text message.",
+            "context": {
+                "note": "no_url_in_message"
+            }
+        }
+    },
+    {
+        "test_id": "X02",
+        "category": "empty_message",
+        "expected": "unknown",
+        "status_code": 400,
+        "actual_category": null,
+        "is_malicious": null,
+        "confidence": null,
+        "url": null,
+        "brand_impersonated": null,
+        "verdict": "FAIL",
+        "input": "",
+        "response": {
+            "detail": "body must not be empty"
+        }
+    }
+]

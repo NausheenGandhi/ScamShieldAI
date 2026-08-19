@@ -102,6 +102,44 @@ except Exception as e:
 
 
 # ============================================================
+# PATTERN AGENT
+# ============================================================
+
+try:
+    module = importlib.import_module("agents.pattern_agent")
+    analyze_pattern = getattr(module, "analyze_pattern")
+    PATTERN_AGENT_AVAILABLE = True
+
+except Exception as e:
+    PATTERN_AGENT_AVAILABLE = False
+    analyze_pattern = None
+
+    print(
+        "Pattern Agent import failed:",
+        str(e)
+    )
+
+
+# ============================================================
+# COORDINATOR
+# ============================================================
+
+try:
+    module = importlib.import_module("agents.coordinator")
+    analyze_coordinator = getattr(module, "combine_agent_results")
+    COORDINATOR_AVAILABLE = True
+
+except Exception as e:
+    COORDINATOR_AVAILABLE = False
+    analyze_coordinator = None
+
+    print(
+        "Coordinator import failed:",
+        str(e)
+    )
+
+
+# ============================================================
 # FASTAPI
 # ============================================================
 
@@ -186,6 +224,12 @@ def root():
 
             "contact":
                 CONTACT_AGENT_AVAILABLE,
+
+            "pattern":
+                PATTERN_AGENT_AVAILABLE,
+
+            "coordinator":
+                COORDINATOR_AVAILABLE,
         }
     }
 
@@ -210,6 +254,12 @@ def health():
 
         "contact_agent":
             CONTACT_AGENT_AVAILABLE,
+
+        "pattern_agent":
+            PATTERN_AGENT_AVAILABLE,
+
+        "coordinator":
+            COORDINATOR_AVAILABLE,
     }
 
 
@@ -497,6 +547,45 @@ def analyze_url_endpoint(
         result
     )
 
+
+    return result
+
+
+# ============================================================
+# PATTERN ANALYSIS
+# ============================================================
+
+@app.post("/analyze-pattern")
+def analyze_pattern_endpoint(
+    request: SMSRequest
+):
+    print("\n")
+    print("=" * 70)
+    print("NEW PATTERN ANALYSIS REQUEST")
+    print("=" * 70)
+
+    if not PATTERN_AGENT_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Pattern Agent is unavailable")
+
+    if not request.body or not request.body.strip():
+        raise HTTPException(status_code=400, detail="body must not be empty")
+
+    ts_seconds = request.timestamp / 1000 if request.timestamp else None
+
+    try:
+        result = analyze_pattern(
+            sender=request.sender,
+            message=request.body,
+            timestamp=ts_seconds,
+        )
+    except Exception as e:
+        print("Pattern Agent error:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+    print("\n")
+    print("PATTERN RESULT")
+    print("-" * 70)
+    print(result)
 
     return result
 

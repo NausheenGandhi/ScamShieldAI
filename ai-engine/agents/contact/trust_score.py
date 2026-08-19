@@ -43,15 +43,15 @@ IMPERSONATION_RISK_TRUST = {
 
 def _saved_contact_component(is_saved_contact: bool, burst_detected: bool, repeated_content: bool) -> float:
     """
-    Saved contact ≠ automatically trusted. A saved contact whose account
-    looks compromised (burst/repeated blasting) gets no benefit here.
+    Saved contact ≠ automatically trusted. Contact trust is based on the
+    sender being in the user's saved contacts, while the Pattern Agent owns
+    repeated-message and burst behavior. The saved-contact component therefore
+    stays generous for normal saved contacts and does not penalize for message
+    behavior that belongs to the Pattern Agent.
     """
 
     if not is_saved_contact:
         return 45.0  # neutral-low, NOT automatically suspicious
-
-    if burst_detected or repeated_content:
-        return 30.0  # compromised-looking behavior overrides the "saved" benefit
 
     return 95.0
 
@@ -90,16 +90,17 @@ def _spam_scam_component(spam_probability: float, scam_probability: float) -> fl
 
 def calculate_trust_score(
     is_saved_contact: bool,
-    burst_detected: bool,
-    repeated_content: bool,
-    sender_type: str,
-    sender_reputation_score: float,
-    risk_signals: Dict[str, Any],
-    impersonation_risk: str,
-    spam_probability: float,
-    scam_probability: float,
+    burst_detected: bool = False,
+    repeated_content: bool = False,
+    sender_type: str = "UNKNOWN",
+    sender_reputation_score: float = 50.0,
+    risk_signals: Dict[str, Any] | None = None,
+    impersonation_risk: str = "LOW",
+    spam_probability: float = 0.0,
+    scam_probability: float = 0.0,
 ) -> Dict[str, Any]:
 
+    risk_signals = risk_signals or {}
     saved_contact_component = _saved_contact_component(is_saved_contact, burst_detected, repeated_content)
     sender_type_component = SENDER_TYPE_TRUST.get(sender_type, SENDER_TYPE_TRUST["UNKNOWN"])
     reputation_component = max(0.0, min(100.0, sender_reputation_score))

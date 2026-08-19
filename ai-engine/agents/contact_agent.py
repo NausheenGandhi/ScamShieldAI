@@ -404,13 +404,11 @@ def analyze_contact(
         message = ""
 
     # ------------------------------------------------------------
-    # 1-3. Existing saved-contact / burst / repetition pipeline
+    # 1-3. Sender history is kept for contact-level reputation tracking,
+    #     but burst/repetition detection is owned by the Pattern Agent.
     # ------------------------------------------------------------
     history_key = normalize_sender(sender)
     history = _STORE.record_and_get(history_key, message, now=now)
-    frequency = analyze_frequency(history, now=now)
-    repetition = analyze_repetition(history, message)
-    legacy_risk = calculate_contact_risk(is_saved_contact, frequency, repetition)
 
     # ------------------------------------------------------------
     # 4. Sender ID type classification
@@ -459,8 +457,8 @@ def analyze_contact(
     # ------------------------------------------------------------
     trust = calculate_trust_score(
         is_saved_contact=is_saved_contact,
-        burst_detected=frequency["burst_detected"],
-        repeated_content=repetition["repeated_content"],
+        burst_detected=False,
+        repeated_content=False,
         sender_type=sender_classification["sender_type"],
         sender_reputation_score=reputation_score,
         risk_signals=risk_signals,
@@ -489,7 +487,6 @@ def analyze_contact(
         "Sender is saved in contacts." if is_saved_contact
         else "Sender is not in your saved contacts."
     )
-    reasons.extend(legacy_risk["reasons"])
     reasons.extend(signals["reasons"])
     if impersonation["detected"]:
         reasons.append(impersonation["reason"])
@@ -501,7 +498,7 @@ def analyze_contact(
     reasons = _dedupe_preserve_order(reasons)
 
     legacy_level = _map_verdict_to_legacy_level(trust["verdict"])
-    confidence = _estimate_confidence(sender_doc, signals, frequency, repetition)
+    confidence = _estimate_confidence(sender_doc, signals, {}, {})
 
     explanation = generate_contact_explanation(legacy_level, reasons, contact_name)
 
@@ -522,14 +519,9 @@ def analyze_contact(
 
         "signals": {
             "is_saved_contact": is_saved_contact,
-            "is_first_contact": frequency["is_first_contact"],
-            "message_count_5min": frequency["message_count_5min"],
-            "message_count_1hour": frequency["message_count_1hour"],
-            "message_count_24hour": frequency["message_count_24hour"],
-            "burst_detected": frequency["burst_detected"],
-            "repeated_content": repetition["repeated_content"],
-            "repeat_count": repetition["repeat_count"],
-            "max_similarity": repetition["max_similarity"],
+            "is_first_contact": len(history) <= 1,
+            "sender_type": sender_classification.get("sender_type"),
+            "sender_reputation": reputation_status_label,
         },
 
         # ------------------------------------------------------

@@ -35,7 +35,8 @@ from urllib.parse import urlparse
 import requests
 import whois  # python-whois
 
-from utils.groq_client import groq_chat, groq_chat_json, groq_vision_chat
+
+from utils.groq_client import groq_chat, groq_chat_json, groq_vision_chat, looks_truncated
 from prompts.url_prompts import (
     EXTRACTION_PROMPT,
     DETECTION_PROMPT,
@@ -437,36 +438,70 @@ def run_cot_detection(
 # STEP 8: SHORT EXPLANATION
 # ============================================================
 
+# ============================================================
+# STEP 8: SHORT EXPLANATION  (patched v2)
+# ============================================================
+#
+# Changes from v1 patch:
+#   - logs the raw output of each attempt (even truncated ones) so you
+#     can see what's actually happening instead of guessing
+#   - if every attempt looks truncated, uses the LONGEST attempt instead
+#     of the generic hardcoded fallback, as long as it clears a minimum
+#     length - a slightly-imperfect real explanation beats a canned one
+#   - only falls back to the hardcoded text if every attempt was empty
+#     or too short to be useful (e.g. "**Decision:** This text is")
+
+MIN_USABLE_EXPLANATION_LEN = 60  # chars; below this, treat as unusable
+
+
 def generate_short_explanation(detection_result: Dict[str, Any]) -> str:
     """
     Converts the detailed verdict into a short, plain-language message
     for the end user (decision + why + what to do, <= 4 sentences).
     """
 
-    try:
-        prompt = EXPLANATION_PROMPT.format(
-            category=detection_result.get("category", "unknown"),
-            reasoning=detection_result.get("reasoning", "No reasoning provided."),
-        )
+    prompt = EXPLANATION_PROMPT.format(
+        category=detection_result.get("category", "unknown"),
+        reasoning=detection_result.get("reasoning", "No reasoning provided."),
+    )
 
-        return groq_chat(
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=250,
-        )
-    except Exception as e:
-        # Fallback explanation if LLM fails
-        category = detection_result.get("category", "unknown").lower()
-        if category == "phishing":
-            return "This message appears to be a potential scam. Do not click links or share information."
-        elif category == "spam":
-            return "This message appears to be spam. Consider deleting it and marking as spam."
-        elif category == "legitimate":
-            return "This message appears to be from a legitimate source. However, always verify before sharing sensitive info."
-        else:
-            return "Analysis encountered an error. Please review this message carefully before responding."
+    best_attempt = ""
 
+    for max_tokens in (250, 400):
+        try:
+            explanation = groq_chat(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=max_tokens,
+            )
+            print(f"generate_short_explanation attempt (max_tokens={max_tokens}): {explanation!r}")
 
+            if explanation and len(explanation) > len(best_attempt):
+                best_attempt = explanation
+
+            if explanation and not looks_truncated(explanation):
+                return explanation
+            # else: looked cut off or empty, try again with more headroom
+        except Exception as e:
+            print("generate_short_explanation call failed:", str(e))
+
+    # Every attempt looked truncated (or failed). Prefer the longest real
+    # attempt over the generic fallback, as long as it's long enough to
+    # actually convey something - a slightly rough real answer beats a
+    # canned one, but "**Decision:** This text is" should still fall
+    # through to the hardcoded message below.
+    if len(best_attempt) >= MIN_USABLE_EXPLANATION_LEN:
+        return best_attempt
+
+    category = detection_result.get("category", "unknown").lower()
+    if category == "phishing":
+        return "This message appears to be a potential scam. Do not click links or share information."
+    elif category == "spam":
+        return "This message appears to be spam. Consider deleting it and marking as spam."
+    elif category == "legitimate":
+        return "This message appears to be from a legitimate source. However, always verify before sharing sensitive info."
+    else:
+        return "Analysis encountered an error. Please review this message carefully before responding."
 # ============================================================
 # ORCHESTRATOR
 # ============================================================
