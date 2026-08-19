@@ -3,10 +3,7 @@ url_agent.py
 
 Context-augmented URL / SMS phishing detection agent.
 
-Pipeline (mirrors the general structure of context-augmented, agentic
-phishing detectors: extract -> collect context -> chain-of-thought
-detection -> plain-language explanation):
-
+Pipeline:
     1. extract_url_and_brand()   - pull URL(s) and brand name(s) out of the SMS
     2. get_redirect_chain()      - follow shortened/redirected links to their final destination
     3. get_domain_info()         - WHOIS lookup on the final domain
@@ -15,6 +12,11 @@ detection -> plain-language explanation):
     6. get_brand_domain()        - look up the brand's real official domain
     7. run_cot_detection()       - chain-of-thought phishing/spam/legit verdict
     8. generate_short_explanation() - turn the verdict into a 3-part plain-language message
+
+If the message has no URL at all, none of the above runs - analyze_url()
+returns a fast "no_url" result instead, since this agent's job is
+specifically link analysis (scam-pattern-without-a-link detection lives
+in pattern_agent.py).
 
 Entry point: analyze_url(sms_text) -> dict, shaped to slot into main.py
 the same way analyze_otp() does.
@@ -28,6 +30,8 @@ Dependencies:
 
 import re
 import base64
+import socket
+import ipaddress
 import datetime
 from typing import Optional, List, Dict, Any
 from urllib.parse import urlparse
@@ -60,6 +64,91 @@ HEADERS = {
     )
 }
 
+# Regex used both to detect "is there a URL at all" (fast path, before
+# any LLM call) and as the extraction fallback. This is the one place
+# that decides whether the rest of the pipeline runs, so it needs to be
+# reliable on its own, not dependent on the LLM.
+URL_REGEX = re.compile(r"https?://\S+")
+
+# Punctuation that regex URL matching commonly drags in from the
+# surrounding sentence (e.g. "check http://bit.ly/x." or "...link,")
+URL_TRAILING_PUNCT = ").,!?;:'\""
+
+
+# ============================================================
+# URL VALIDATION / SSRF GUARD
+# ============================================================
+
+def _clean_url(url: str) -> str:
+    """Strips trailing sentence punctuation a regex match can pick up."""
+    return url.rstrip(URL_TRAILING_PUNCT)
+
+
+def _is_valid_url_format(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    except Exception:
+        return False
+
+
+def _is_safe_public_host(hostname: Optional[str]) -> bool:
+    """
+    Returns False for hostnames that resolve to loopback, private,
+    link-local, reserved, or unspecified addresses - or that fail to
+    resolve at all. An SMS URL is attacker-controlled input, so before
+    this backend fetches it we need to make sure it can't be pointed at
+    localhost, an internal service, or cloud metadata endpoints like
+    169.254.169.254.
+    """
+
+    if not hostname:
+        return False
+
+    host = hostname.lower().strip(".")
+
+    if host in ("localhost",) or host.endswith(".local"):
+        return False
+
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+    except Exception:
+        return False
+
+    if not infos:
+        return False
+
+    for info in infos:
+        ip_str = info[4][0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        ):
+            return False
+
+    return True
+
+
+def _is_safe_url(url: str) -> bool:
+    if not _is_valid_url_format(url):
+        return False
+    return _is_safe_public_host(urlparse(url).hostname)
+
+
+def _extract_urls_regex(sms_text: str) -> List[str]:
+    return [_clean_url(u) for u in URL_REGEX.findall(sms_text)]
+
 
 # ============================================================
 # STEP 1: EXTRACTION
@@ -67,10 +156,15 @@ HEADERS = {
 
 def extract_url_and_brand(sms_text: str) -> Dict[str, Any]:
     """
-    Uses the LLM to pull URLs and brand names out of the raw SMS text.
-    Falls back to a regex URL scan if the LLM call fails, so a single
-    flaky call doesn't kill the whole pipeline.
+    Uses the LLM to pull brand names out of the raw SMS text, and to
+    double-check the URL list. The URL list itself is not trusted from
+    the LLM alone though - see analyze_url(), which always cross-checks
+    against a regex scan, since the "does this message have a URL"
+    decision needs to be reliable even if the LLM call fails or
+    hallucinates.
     """
+
+    regex_urls = _extract_urls_regex(sms_text)
 
     try:
         result = groq_chat_json(
@@ -82,18 +176,22 @@ def extract_url_and_brand(sms_text: str) -> Dict[str, Any]:
             ],
         )
 
-        if "urls" in result:
+        if isinstance(result, dict) and "urls" in result:
+            llm_urls = [_clean_url(u) for u in (result.get("urls") or [])]
+            # Union, regex first: catches anything the LLM missed, while
+            # still keeping any extra URL the LLM found.
+            merged = list(dict.fromkeys(regex_urls + llm_urls))
+            result["urls"] = merged
+            result["has_url"] = bool(merged)
             return result
 
     except Exception as e:
         print("extract_url_and_brand LLM call failed:", str(e))
 
-    # Fallback: naive regex extraction
-    urls = re.findall(r"https?://\S+", sms_text)
-
+    # Fallback: regex only
     return {
-        "has_url": bool(urls),
-        "urls": urls,
+        "has_url": bool(regex_urls),
+        "urls": regex_urls,
         "has_brand": False,
         "brands": [],
     }
@@ -106,10 +204,16 @@ def extract_url_and_brand(sms_text: str) -> Dict[str, Any]:
 def get_redirect_chain(url: str) -> Dict[str, Any]:
     """
     Follows a URL through any redirects and returns the full chain plus
-    the final destination. Shortened URLs are the norm in SMS, both
-    legit and malicious, so we always need the real destination before
-    we can reason about it.
+    the final destination. Refuses to fetch (and refuses to follow into)
+    private/internal addresses - see _is_safe_url().
     """
+
+    if not _is_safe_url(url):
+        return {
+            "chain": [url],
+            "final_url": url,
+            "error": "blocked_unsafe_url",
+        }
 
     chain = [url]
     final_url = url
@@ -126,6 +230,16 @@ def get_redirect_chain(url: str) -> Dict[str, Any]:
 
         chain = [r.url for r in response.history] + [response.url]
         final_url = response.url
+
+        # A redirect can land somewhere unsafe even if the original URL
+        # was fine - re-check the actual destination before it's used
+        # for WHOIS / HTML fetching downstream.
+        if not _is_safe_url(final_url):
+            return {
+                "chain": chain,
+                "final_url": final_url,
+                "error": "blocked_unsafe_redirect_destination",
+            }
 
     except requests.Timeout:
         error = f"Request timed out after {REQUEST_TIMEOUT} seconds"
@@ -170,10 +284,6 @@ def get_domain_info(final_url: str) -> Dict[str, Any]:
 
         age_days = None
         if isinstance(creation_date, datetime.datetime):
-            # Some WHOIS servers return a timezone-aware creation_date.
-            # datetime.now() is naive, so subtracting them directly raises
-            # "can't subtract offset-naive and offset-aware datetimes".
-            # Match now()'s awareness to creation_date's before subtracting.
             now = (
                 datetime.datetime.now(creation_date.tzinfo)
                 if creation_date.tzinfo
@@ -219,7 +329,6 @@ def _extract_visible_text(html: str) -> str:
         text = soup.get_text(separator=" ", strip=True)
 
     except ImportError:
-        # Fallback if bs4 isn't installed: crude tag stripping
         text = re.sub(r"<[^>]+>", " ", html)
         text = re.sub(r"\s+", " ", text).strip()
 
@@ -229,9 +338,12 @@ def _extract_visible_text(html: str) -> str:
 def get_html_summary(final_url: str) -> str:
     """
     Fetches the destination page and asks the LLM to summarize what the
-    site actually is (identity, purpose) so it can be compared against
-    what the SMS claims.
+    site actually is, so it can be compared against what the SMS claims.
+    Refuses to fetch unsafe (internal/private) destinations.
     """
+
+    if not _is_safe_url(final_url):
+        return "Blocked: destination resolves to a private or internal address."
 
     try:
         response = requests.get(
@@ -285,13 +397,14 @@ def get_screenshot_summary(final_url: str) -> str:
     """
     OPTIONAL step. Renders the page with Playwright and asks a
     vision-capable Groq model to describe logos/branding/layout.
-    Disabled by default (ENABLE_SCREENSHOT_ANALYSIS=False) since it
-    adds a heavy dependency and latency; the HTML summary alone covers
-    most cases.
+    Disabled by default; also respects the safe-URL check.
     """
 
     if not ENABLE_SCREENSHOT_ANALYSIS:
         return "Screenshot analysis disabled."
+
+    if not _is_safe_url(final_url):
+        return "Blocked: destination resolves to a private or internal address."
 
     try:
         from playwright.sync_api import sync_playwright
@@ -325,9 +438,8 @@ def get_screenshot_summary(final_url: str) -> str:
 def get_brand_domain(brand_name: str) -> Dict[str, Any]:
     """
     Looks up the brand's real official domain via a DuckDuckGo HTML
-    search (no API key required, unlike Google's search API). This
-    lets the detection step check whether the SMS's link actually
-    points at the brand's own domain.
+    search, so the detection step can check whether the SMS's link
+    actually points at the brand's own domain.
     """
 
     if not brand_name:
@@ -342,8 +454,6 @@ def get_brand_domain(brand_name: str) -> Dict[str, Any]:
         )
         response.raise_for_status()
 
-        # First external-looking link in the results is treated as the
-        # brand's likely official site.
         links = re.findall(r'href="(https?://[^"]+)"', response.text)
 
         official_domain = None
@@ -411,7 +521,6 @@ def run_cot_detection(
             max_tokens=800,
         )
 
-        # Ensure required fields exist
         if isinstance(result, dict):
             return result
         else:
@@ -437,19 +546,6 @@ def run_cot_detection(
 # ============================================================
 # STEP 8: SHORT EXPLANATION
 # ============================================================
-
-# ============================================================
-# STEP 8: SHORT EXPLANATION  (patched v2)
-# ============================================================
-#
-# Changes from v1 patch:
-#   - logs the raw output of each attempt (even truncated ones) so you
-#     can see what's actually happening instead of guessing
-#   - if every attempt looks truncated, uses the LONGEST attempt instead
-#     of the generic hardcoded fallback, as long as it clears a minimum
-#     length - a slightly-imperfect real explanation beats a canned one
-#   - only falls back to the hardcoded text if every attempt was empty
-#     or too short to be useful (e.g. "**Decision:** This text is")
 
 MIN_USABLE_EXPLANATION_LEN = 60  # chars; below this, treat as unusable
 
@@ -481,15 +577,9 @@ def generate_short_explanation(detection_result: Dict[str, Any]) -> str:
 
             if explanation and not looks_truncated(explanation):
                 return explanation
-            # else: looked cut off or empty, try again with more headroom
         except Exception as e:
             print("generate_short_explanation call failed:", str(e))
 
-    # Every attempt looked truncated (or failed). Prefer the longest real
-    # attempt over the generic fallback, as long as it's long enough to
-    # actually convey something - a slightly rough real answer beats a
-    # canned one, but "**Decision:** This text is" should still fall
-    # through to the hardcoded message below.
     if len(best_attempt) >= MIN_USABLE_EXPLANATION_LEN:
         return best_attempt
 
@@ -502,6 +592,33 @@ def generate_short_explanation(detection_result: Dict[str, Any]) -> str:
         return "This message appears to be from a legitimate source. However, always verify before sharing sensitive info."
     else:
         return "Analysis encountered an error. Please review this message carefully before responding."
+
+
+# ============================================================
+# NO-URL FAST PATH
+# ============================================================
+
+def _no_url_result(note: str) -> Dict[str, Any]:
+    """
+    Returned immediately, with zero LLM/network calls, when the message
+    has no URL. This agent's job is link analysis specifically - a
+    scam message with no link at all is out of scope here (that's what
+    pattern_agent.py is for), so there's nothing to gain from running
+    the full detection pipeline on it.
+    """
+    return {
+        "category": "no_url",
+        "is_malicious": False,
+        "confidence": "high",
+        "brand_impersonated": None,
+        "url": None,
+        "short_explanation": "This message doesn't contain a link, so there's nothing for the URL check to analyze.",
+        "reasoning": "No URL was found in the message.",
+        "brief_reason": "No link in message.",
+        "context": {"note": note},
+    }
+
+
 # ============================================================
 # ORCHESTRATOR
 # ============================================================
@@ -511,10 +628,16 @@ def analyze_url(sms_text: str) -> Dict[str, Any]:
     Full pipeline entry point. Call this from main.py the same way
     analyze_otp() is called.
 
+    Behavior: if sms_text contains no URL, returns _no_url_result()
+    immediately - no LLM calls, no outbound requests. Only messages
+    that actually contain a link go through extraction, redirect
+    following, WHOIS, page summarization, and chain-of-thought
+    detection.
+
     Returns a dict shaped for the mobile app's SecurityCenter /
     scan-result screens:
         {
-            "category": "legitimate" | "spam" | "phishing",
+            "category": "legitimate" | "spam" | "phishing" | "no_url" | "unknown",
             "is_malicious": bool,
             "confidence": "low" | "medium" | "high",
             "brand_impersonated": str | None,
@@ -526,45 +649,33 @@ def analyze_url(sms_text: str) -> Dict[str, Any]:
     """
 
     try:
-        if not sms_text or not isinstance(sms_text, str):
-            return {
-                "category": "unknown",
-                "is_malicious": False,
-                "confidence": "low",
-                "brand_impersonated": None,
-                "url": None,
-                "short_explanation": "Invalid message provided",
-                "reasoning": "Message is empty or invalid",
-                "context": {},
-            }
+        if not sms_text or not isinstance(sms_text, str) or not sms_text.strip():
+            return _no_url_result("empty_message")
+
+        # Fast, deterministic check FIRST - before any LLM call. This is
+        # the gate: no URL, no analysis.
+        if not URL_REGEX.search(sms_text):
+            return _no_url_result("no_url_in_message")
 
         extraction = extract_url_and_brand(sms_text)
-
         urls = extraction.get("urls") or []
         brands = extraction.get("brands") or []
 
-        # No URL -> skip the URL-specific context gathering, but still run
-        # detection since brand impersonation / urgency can exist without a link.
         if not urls:
-            detection = run_cot_detection(
-                sms_text=sms_text,
-                redirect_info={"chain": [], "final_url": None},
-                domain_info={"domain": None},
-                html_summary="No URL present in message.",
-                screenshot_summary="No URL present in message.",
-                brand_domain={"official_domain": None},
-            )
+            # Regex found something the extraction step then filtered out
+            # entirely (rare) - fall back to the raw regex match directly
+            # rather than silently skipping a message that does have a URL.
+            urls = _extract_urls_regex(sms_text)
 
-            explanation = generate_short_explanation(detection)
+        if not urls:
+            return _no_url_result("no_url_in_message")
 
-            return {
-                **detection,
-                "short_explanation": explanation,
-                "context": {"note": "no_url_in_message"},
-            }
+        # Prefer the first URL with a valid http(s)://host shape.
+        url = next((u for u in urls if _is_valid_url_format(u)), None)
+        if not url:
+            return _no_url_result("no_valid_url_found")
 
-        url = urls[0]
-        brand_name = brands[0] if brands else detection_brand_guess(sms_text)
+        brand_name = brands[0] if brands else None
 
         redirect_info = get_redirect_chain(url)
         final_url = redirect_info.get("final_url", url)
@@ -587,6 +698,7 @@ def analyze_url(sms_text: str) -> Dict[str, Any]:
 
         return {
             **detection,
+            "url": detection.get("url") or url,
             "short_explanation": explanation,
             "context": {
                 "redirect_chain": redirect_info.get("chain", []),
@@ -611,8 +723,3 @@ def analyze_url(sms_text: str) -> Dict[str, Any]:
             "reasoning": f"An error occurred during analysis: {str(e)}",
             "context": {"error": str(e)},
         }
-
-
-def detection_brand_guess(sms_text: str) -> Optional[str]:
-    """Tiny helper: returns None when extraction found no brand name at all."""
-    return None
