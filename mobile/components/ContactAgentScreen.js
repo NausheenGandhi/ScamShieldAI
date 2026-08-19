@@ -1723,20 +1723,39 @@ export default function ContactAgentScreen({
         ==================================================== */}
 
         {liveResult ? (
-          <ContactAnalysisCard
-            result={
-              liveResult
-            }
-            sender={
-              liveEvent?.sender
-            }
-            contactName={
-              liveEvent?.contact_name
-            }
-            isSavedContact={
-              liveEvent?.is_saved_contact
-            }
-          />
+          <>
+            <View
+              style={
+                styles.messageBubble
+              }
+            >
+              <Text
+                style={
+                  styles.bodyText
+                }
+                numberOfLines={
+                  3
+                }
+              >
+                {liveEvent?.body}
+              </Text>
+            </View>
+
+            <ContactAnalysisCard
+              result={
+                liveResult
+              }
+              sender={
+                liveEvent?.sender
+              }
+              contactName={
+                liveResult?.contact_name
+              }
+              isSavedContact={
+                liveResult?.is_saved_contact
+              }
+            />
+          </>
         ) : (
           <View
             style={styles.card}

@@ -40,7 +40,7 @@ import difflib
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from utils.groq_client import groq_chat
+from utils.groq_client import groq_chat, looks_truncated
 from prompts.contact_prompts import CONTACT_EXPLANATION_PROMPT
 
 from .contact.sender_classifier import classify_sender
@@ -288,6 +288,12 @@ def generate_contact_explanation(
     contact_name: Optional[str],
 ) -> str:
 
+    fallback = {
+        "DANGER": "This sender's messaging pattern looks suspicious. Be cautious before responding or clicking anything.",
+        "CAUTION": "Something about this sender's activity is a little unusual. Double-check before you act on this message.",
+        "SAFE": "No unusual sender behavior detected.",
+    }
+
     try:
         prompt = CONTACT_EXPLANATION_PROMPT.format(
             level=level,
@@ -295,20 +301,33 @@ def generate_contact_explanation(
             contact_name=contact_name or "this sender",
         )
 
-        return groq_chat(
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=150,
-        )
+        # 150 tokens was routinely too tight for 2-3 sentences + an action
+        # step, causing responses to cut off mid-sentence (finish_reason
+        # "length"). Give it more headroom, and if it *still* comes back
+        # looking cut off, retry once before giving up - never show a
+        # dangling sentence to the user.
+        for attempt_max_tokens in (300, 400):
+            text = groq_chat(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=attempt_max_tokens,
+            )
+
+            if not looks_truncated(text):
+                return text
+
+            logger.warning(
+                "Contact explanation looked truncated at max_tokens=%d - retrying.",
+                attempt_max_tokens,
+            )
+
+        # Exhausted retries and it's still truncated - fall back rather
+        # than show broken text.
+        logger.warning("Contact explanation still truncated after retry - using fallback.")
+        return fallback.get(level, fallback["SAFE"])
 
     except Exception as e:
         print("Contact explanation LLM call failed:", str(e))
-
-        fallback = {
-            "DANGER": "This sender's messaging pattern looks suspicious. Be cautious before responding or clicking anything.",
-            "CAUTION": "Something about this sender's activity is a little unusual. Double-check before you act on this message.",
-            "SAFE": "No unusual sender behavior detected.",
-        }
         return fallback.get(level, fallback["SAFE"])
 
 
@@ -519,7 +538,20 @@ def analyze_contact(
 
         "signals": {
             "is_saved_contact": is_saved_contact,
-            "is_first_contact": len(history) <= 1,
+            # Derived from the persisted Mongo count for this sender, not
+            # the in-process _STORE history: that store is ephemeral
+            # (resets on every restart / isn't shared across workers) and
+            # keyed slightly differently, so it was reporting
+            # "first contact" for senders Mongo already had a long
+            # history for. total_messages includes the message just
+            # recorded, so ==1 means this is genuinely the first one
+            # we've ever seen from them. When Mongo is unavailable, fall
+            # back to the in-memory count as a best-effort signal.
+            "is_first_contact": (
+                sender_doc.get("total_messages", 1) <= 1
+                if sender_doc.get("available")
+                else len(history) <= 1
+            ),
             "sender_type": sender_classification.get("sender_type"),
             "sender_reputation": reputation_status_label,
         },

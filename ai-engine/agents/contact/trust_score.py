@@ -88,6 +88,48 @@ def _spam_scam_component(spam_probability: float, scam_probability: float) -> fl
     return max(0.0, 100.0 * (1.0 - worst))
 
 
+def _danger_score_cap(risk_signals: Dict[str, Any], scam_probability: float) -> float:
+    """
+    Saved-contact status, sender type, and sender reputation are all
+    signals about who is (apparently) sending the message - they say
+    nothing about whether THIS specific message is a scam. The classic
+    "Mom, I've had an accident, send money now" and "you are under
+    arrest" scams work specifically by exploiting a trusted relationship
+    (a spoofed number, or a genuinely compromised phone/account), so a
+    high saved-contact/reputation score must never be allowed to fully
+    cancel out dangerous message content down to "SAFE".
+
+    This returns a ceiling on the final trust score. It never lowers a
+    score that's already low, and it never boosts a score - it only
+    prevents identity-trust components from overriding strong content
+    evidence.
+    """
+
+    threat = bool(risk_signals.get("threat"))
+    credential_request = bool(risk_signals.get("credential_request"))
+    financial_request = bool(risk_signals.get("financial_request"))
+    secrecy_request = bool(risk_signals.get("secrecy_request"))
+
+    danger_signal_count = sum([threat, credential_request, financial_request, secrecy_request])
+
+    # Strong evidence (a high scam probability, or several dangerous
+    # signals at once, e.g. threat + financial_request, or
+    # credential_request + urgency baked into scam_probability): cap
+    # well below "safe" territory so the verdict lands at SUSPICIOUS or
+    # HIGH_RISK regardless of sender trust.
+    if scam_probability >= 0.45 or danger_signal_count >= 2:
+        return 39.0
+
+    # A single strong danger signal on its own (a bare threat, a bare
+    # credential ask, or a bare money ask) is still enough that a user
+    # should be told to double check, not reassured it's SAFE - cap
+    # below the TRUSTED/LOW_RISK "safe" band.
+    if scam_probability >= 0.20 or danger_signal_count >= 1:
+        return 59.0
+
+    return 100.0
+
+
 def calculate_trust_score(
     is_saved_contact: bool,
     burst_detected: bool = False,
@@ -117,6 +159,9 @@ def calculate_trust_score(
         + spam_scam_component * WEIGHTS["spam_scam_probability"]
     )
 
+    danger_cap = _danger_score_cap(risk_signals, scam_probability)
+    weighted = min(weighted, danger_cap)
+
     score = int(round(max(0.0, min(100.0, weighted))))
 
     if score >= 80:
@@ -133,6 +178,7 @@ def calculate_trust_score(
     return {
         "score": score,
         "verdict": verdict,
+        "danger_cap_applied": danger_cap < 100.0,
         "components": {
             "saved_contact": round(saved_contact_component, 1),
             "sender_type": round(sender_type_component, 1),

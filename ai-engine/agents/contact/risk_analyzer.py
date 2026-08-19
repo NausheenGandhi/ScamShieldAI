@@ -277,14 +277,18 @@ class MessageClassifier:
         if signals.get("credential_request"):
             scam_score += 0.30
         if signals.get("financial_request"):
-            scam_score += 0.25
+            scam_score += 0.30
             spam_score += 0.10
         if signals.get("threat"):
-            scam_score += 0.20
+            # A threat (arrest, legal action, account suspension) is
+            # itself a classic scam opener designed to induce panic
+            # before the "ask" even arrives - weight it more heavily on
+            # its own, not just as a minor contributor.
+            scam_score += 0.30
         if signals.get("secrecy_request"):
             scam_score += 0.20
         if signals.get("urgency"):
-            scam_score += 0.10
+            scam_score += 0.15
             spam_score += 0.05
         if signals.get("prize_scam"):
             scam_score += 0.15
@@ -297,14 +301,42 @@ class MessageClassifier:
             scam_score += 0.15
             spam_score += 0.10
 
+        # ----------------------------------------------------
+        # Combo bonuses for well-known scam templates.
+        # ----------------------------------------------------
+        # A single weak signal in isolation (e.g. "urgent" on its own)
+        # is common in ordinary messages and shouldn't spike the score.
+        # But specific PAIRS of signals together are the actual
+        # fingerprint of common scam scripts, and should be treated as
+        # much stronger evidence than the sum of their parts:
+        #   - "send me money" + urgency          -> emergency-money scam
+        #     ("I've had an accident, send 20000 now")
+        #   - threat + urgency                    -> panic/arrest scam
+        #     ("you are arrested... act now")
+        #   - threat + financial_request          -> extortion / fake-fine scam
+        #   - credential_request + urgency         -> OTP/credential phishing
+        if signals.get("financial_request") and signals.get("urgency"):
+            scam_score += 0.20
+        if signals.get("threat") and signals.get("urgency"):
+            scam_score += 0.15
+        if signals.get("threat") and signals.get("financial_request"):
+            scam_score += 0.20
+        if signals.get("credential_request") and signals.get("urgency"):
+            scam_score += 0.15
+
         scam_probability = max(0.0, min(1.0, scam_score))
         spam_probability = max(0.0, min(1.0, spam_score))
 
-        if scam_probability >= 0.55:
+        # Thresholds lowered from (0.55 / 0.25) - the previous bar meant
+        # a message needed 2-3 simultaneous signals just to leave
+        # NORMAL, so common single/double-signal scams (a bare threat,
+        # or "send money" + urgency) were being classified as NORMAL or
+        # only mildly SUSPICIOUS.
+        if scam_probability >= 0.45:
             classification = "SCAM"
-        elif spam_probability >= 0.5 and scam_probability < 0.4:
+        elif spam_probability >= 0.5 and scam_probability < 0.35:
             classification = "SPAM"
-        elif scam_probability >= 0.25 or spam_probability >= 0.25:
+        elif scam_probability >= 0.20 or spam_probability >= 0.20:
             classification = "SUSPICIOUS"
         else:
             classification = "NORMAL"
