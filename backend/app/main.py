@@ -119,24 +119,31 @@ except Exception as e:
         str(e)
     )
 
-
 # ============================================================
-# COORDINATOR
+# LANGGRAPH COORDINATOR
 # ============================================================
 
 try:
-    module = importlib.import_module("agents.coordinator")
-    analyze_coordinator = getattr(module, "combine_agent_results")
-    COORDINATOR_AVAILABLE = True
+    module = importlib.import_module(
+        "agents.langgraph_coordinator"
+    )
+
+    scam_graph = getattr(
+        module,
+        "scam_graph"
+    )
+
+    LANGGRAPH_AVAILABLE = True
 
 except Exception as e:
-    COORDINATOR_AVAILABLE = False
-    analyze_coordinator = None
+    LANGGRAPH_AVAILABLE = False
+    scam_graph = None
 
     print(
-        "Coordinator import failed:",
+        "LangGraph Coordinator import failed:",
         str(e)
     )
+
 
 
 # ============================================================
@@ -228,8 +235,8 @@ def root():
             "pattern":
                 PATTERN_AGENT_AVAILABLE,
 
-            "coordinator":
-                COORDINATOR_AVAILABLE,
+          "langgraph":
+    LANGGRAPH_AVAILABLE,
         }
     }
 
@@ -258,8 +265,8 @@ def health():
         "pattern_agent":
             PATTERN_AGENT_AVAILABLE,
 
-        "coordinator":
-            COORDINATOR_AVAILABLE,
+        "langgraph":
+            LANGGRAPH_AVAILABLE,
     }
 
 
@@ -268,82 +275,38 @@ def health():
 # OTP AGENT
 # ============================================================
 
+# ============================================================
+# SMS ANALYSIS
+# LANGGRAPH COORDINATOR
+# ============================================================
+
 @app.post("/analyze-sms")
 def analyze_sms(
     request: SMSRequest
 ):
 
     print("\n")
-
+    print("=" * 70)
+    print("NEW SMS - LANGGRAPH ANALYSIS")
     print("=" * 70)
 
-    print(
-        "NEW SMS - OTP ANALYSIS"
-    )
-
-    print("=" * 70)
-
-
-    print(
-        "Sender:",
-        request.sender
-    )
-
+    print("Sender:", request.sender)
+    print("Message:", request.body)
+    print("Expected OTP:", request.expected_otp)
+    print("Foreground App:", request.foreground_app)
+    print("Screen Unlocked:", request.screen_unlocked)
+    print("Saved Contact:", request.is_saved_contact)
+    print("Contact Name:", request.contact_name)
 
     # ========================================================
-    # IMPORTANT PRIVACY NOTE
-    # ========================================================
-    #
-    # SmsReceiver.kt should already sanitize the OTP.
-    #
-    # Example:
-    #
-    # "Your OTP is [OTP]. Give me the OTP."
-    #
-    # NOT:
-    #
-    # "Your OTP is 482193. Give me the OTP."
-    #
-    # Therefore the actual OTP should NEVER appear here.
+    # CHECK LANGGRAPH
     # ========================================================
 
-    print(
-        "Sanitized Message:",
-        request.body
-    )
-
-
-    print(
-        "Expected OTP:",
-        request.expected_otp
-    )
-
-
-    print(
-        "Foreground App:",
-        request.foreground_app
-    )
-
-
-    print(
-        "Screen Unlocked:",
-        request.screen_unlocked
-    )
-
-
-    # ========================================================
-    # CHECK OTP AGENT
-    # ========================================================
-
-    if not OTP_AGENT_AVAILABLE:
-
+    if not LANGGRAPH_AVAILABLE:
         raise HTTPException(
-
             status_code=500,
-
-            detail="OTP Agent is unavailable"
+            detail="LangGraph Coordinator is unavailable"
         )
-
 
     # ========================================================
     # BASIC VALIDATION
@@ -353,75 +316,89 @@ def analyze_sms(
         not request.body
         or not request.body.strip()
     ):
-
         raise HTTPException(
-
             status_code=400,
-
             detail="body must not be empty"
         )
 
-
     # ========================================================
-    # OTP AGENT
+    # LANGGRAPH
     # ========================================================
 
     try:
 
-        result = analyze_otp(
+        graph_result = scam_graph.invoke({
 
-            sender=
-                request.sender,
+            "sms": request.body,
 
-            message=
-                request.body,
+            "sender": request.sender,
 
-            expected_otp=
-                request.expected_otp,
+            "expected_otp": request.expected_otp,
 
-            foreground_app=
-                request.foreground_app,
+            "foreground_app": request.foreground_app,
 
-            screen_unlocked=
-                request.screen_unlocked,
-        )
+            "screen_unlocked": request.screen_unlocked,
 
+            "is_saved_contact":
+                request.is_saved_contact,
+
+            "contact_name":
+                request.contact_name or "",
+        })
 
     except Exception as e:
 
         print(
-            "OTP Agent error:",
+            "LangGraph error:",
             str(e)
         )
 
         raise HTTPException(
-
             status_code=500,
-
             detail=str(e)
         )
 
+    # ========================================================
+    # FINAL RESULT
+    # ========================================================
 
-    # ========================================================
-    # PRINT RESULT
-    # ========================================================
+    final_result = graph_result.get(
+        "final_result",
+        {}
+    )
 
     print("\n")
+    print("=" * 70)
+    print("LANGGRAPH FINAL RESULT")
+    print("=" * 70)
 
-    print(
-        "OTP RESULT"
-    )
+    print(final_result)
 
-    print(
-        "-" * 70
-    )
+    # ========================================================
+    # RESPONSE TO REACT NATIVE
+    # ========================================================
 
-    print(
-        result
-    )
+    return {
+        "success": True,
 
+        "sms": {
+            "sender": request.sender,
+            "body": request.body,
+            "timestamp": request.timestamp,
+        },
 
-    return result
+        "analysis": final_result,
+
+        "routes": graph_result.get(
+            "routes",
+            []
+        ),
+
+        "agents": graph_result.get(
+            "results",
+            []
+        ),
+    }
 
 
 # ============================================================

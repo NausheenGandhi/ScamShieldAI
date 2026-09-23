@@ -68,7 +68,12 @@ HEADERS = {
 # any LLM call) and as the extraction fallback. This is the one place
 # that decides whether the rest of the pipeline runs, so it needs to be
 # reliable on its own, not dependent on the LLM.
-URL_REGEX = re.compile(r"https?://\S+")
+URL_REGEX = re.compile(
+    r"(?:https?://|www\.)\S+"
+    r"|(?<![@\w.-])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
+    r"[a-z]{2,}(?:/\S*)?",
+    re.IGNORECASE,
+)
 
 # Punctuation that regex URL matching commonly drags in from the
 # surrounding sentence (e.g. "check http://bit.ly/x." or "...link,")
@@ -81,7 +86,12 @@ URL_TRAILING_PUNCT = ").,!?;:'\""
 
 def _clean_url(url: str) -> str:
     """Strips trailing sentence punctuation a regex match can pick up."""
-    return url.rstrip(URL_TRAILING_PUNCT)
+    cleaned = url.rstrip(URL_TRAILING_PUNCT)
+
+    if not re.match(r"https?://", cleaned, re.IGNORECASE):
+        return f"https://{cleaned}"
+
+    return cleaned
 
 
 def _is_valid_url_format(url: str) -> bool:
@@ -610,6 +620,7 @@ def _no_url_result(note: str) -> Dict[str, Any]:
         "category": "no_url",
         "is_malicious": False,
         "confidence": "high",
+        "score": 0,
         "brand_impersonated": None,
         "url": None,
         "short_explanation": "This message doesn't contain a link, so there's nothing for the URL check to analyze.",
@@ -696,8 +707,47 @@ def analyze_url(sms_text: str) -> Dict[str, Any]:
 
         explanation = generate_short_explanation(detection)
 
+        # ----------------------------------------------------
+        # URL RISK SCORE
+        # ----------------------------------------------------
+
+        category = str(
+            detection.get("category", "unknown")
+        ).lower()
+
+        is_malicious = bool(
+            detection.get("is_malicious", False)
+        )
+
+        confidence = str(
+            detection.get("confidence", "low")
+        ).lower()
+
+        if is_malicious or category == "phishing":
+            if confidence == "high":
+                url_score = 90
+            elif confidence == "medium":
+                url_score = 75
+            else:
+                url_score = 60
+
+        elif category == "spam":
+            if confidence == "high":
+                url_score = 70
+            elif confidence == "medium":
+                url_score = 55
+            else:
+                url_score = 40
+
+        elif category == "legitimate":
+            url_score = 0
+
+        else:
+            url_score = 30
+
         return {
             **detection,
+            "score": url_score,
             "url": detection.get("url") or url,
             "short_explanation": explanation,
             "context": {
@@ -710,13 +760,13 @@ def analyze_url(sms_text: str) -> Dict[str, Any]:
                 "redirect_error": redirect_info.get("error"),
             },
         }
-
     except Exception as e:
         print(f"URL analysis error: {str(e)}")
         return {
             "category": "unknown",
             "is_malicious": False,
             "confidence": "low",
+            "score": 0,
             "brand_impersonated": None,
             "url": None,
             "short_explanation": "Unable to analyze message",

@@ -30,6 +30,15 @@ function getStatus(category) {
   return STATUS_STYLES[category] || STATUS_STYLES.unknown;
 }
 
+function getUrlScore(result) {
+  const score = Number(
+    result?.score ?? result?.url_score ?? result?.risk_score,
+  );
+  return Number.isFinite(score)
+    ? Math.max(0, Math.min(100, Math.round(score)))
+    : null;
+}
+
 async function analyzeMessage(sender, body) {
   const response = await fetch(`${API_BASE_URL}/analyze-url`, {
     method: "POST",
@@ -147,12 +156,12 @@ export default function UrlAgentScreen({ onBack, onManualScan }) {
     loadRecentMessages();
   }
 
-  // url_analysis is the field SmsReceiver.kt adds alongside the existing
-  // OTP "analysis" field on the same stored event.
+  // New events store the complete LangGraph response. Keep the older
+  // url_analysis field as a fallback for events created by previous builds.
   const liveResult =
-    liveEvent?.url_analysis && Object.keys(liveEvent.url_analysis).length
-      ? liveEvent.url_analysis
-      : null;
+    liveEvent?.langgraph_result?.analysis?.agent_results?.url ||
+    liveEvent?.url_analysis ||
+    null;
   const liveStatus = getStatus(liveResult?.category);
 
   return (
@@ -176,8 +185,8 @@ export default function UrlAgentScreen({ onBack, onManualScan }) {
         </View>
 
         <Text style={styles.subtitle}>
-          Checks links and message content for phishing or spam, on your
-          recent messages and as new ones arrive.
+          Checks links and message content for phishing or spam, on your recent
+          messages and as new ones arrive.
         </Text>
 
         {/* LIVE MONITORING */}
@@ -216,7 +225,10 @@ export default function UrlAgentScreen({ onBack, onManualScan }) {
             <>
               <View style={styles.resultHeader}>
                 <View
-                  style={[styles.statusDot, { backgroundColor: liveStatus.color }]}
+                  style={[
+                    styles.statusDot,
+                    { backgroundColor: liveStatus.color },
+                  ]}
                 />
                 <Text style={[styles.resultLabel, { color: liveStatus.color }]}>
                   {liveStatus.label}
@@ -233,6 +245,14 @@ export default function UrlAgentScreen({ onBack, onManualScan }) {
               <Text style={styles.bodyText} numberOfLines={2}>
                 {liveEvent?.body}
               </Text>
+              {getUrlScore(liveResult) !== null && (
+                <View style={styles.scoreRow}>
+                  <Text style={styles.scoreLabel}>URL RISK SCORE</Text>
+                  <Text style={styles.scoreValue}>
+                    {getUrlScore(liveResult)}/100
+                  </Text>
+                </View>
+              )}
               <Text style={styles.explanationText}>
                 {liveResult.short_explanation}
               </Text>
@@ -294,7 +314,9 @@ export default function UrlAgentScreen({ onBack, onManualScan }) {
                           { backgroundColor: status.color },
                         ]}
                       />
-                      <Text style={[styles.resultLabel, { color: status.color }]}>
+                      <Text
+                        style={[styles.resultLabel, { color: status.color }]}
+                      >
                         {status.label}
                       </Text>
                       {item.result.confidence && (
@@ -308,6 +330,15 @@ export default function UrlAgentScreen({ onBack, onManualScan }) {
                       <Text style={styles.brandText}>
                         Claims to be from: {item.result.brand_impersonated}
                       </Text>
+                    )}
+
+                    {getUrlScore(item.result) !== null && (
+                      <View style={styles.scoreRow}>
+                        <Text style={styles.scoreLabel}>URL RISK SCORE</Text>
+                        <Text style={styles.scoreValue}>
+                          {getUrlScore(item.result)}/100
+                        </Text>
+                      </View>
                     )}
 
                     <Text style={styles.explanationText}>
@@ -345,7 +376,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: { color: COLORS.white, fontSize: 20, fontWeight: "700" },
-  subtitle: { color: COLORS.muted, fontSize: 13, lineHeight: 19, marginBottom: 20 },
+  subtitle: {
+    color: COLORS.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 20,
+  },
 
   sectionRow: {
     flexDirection: "row",
@@ -381,19 +417,41 @@ const styles = StyleSheet.create({
   emptyText: { color: COLORS.muted, fontSize: 13, lineHeight: 19 },
 
   senderText: { color: COLORS.white, fontSize: 14, fontWeight: "700" },
-  bodyText: { color: COLORS.muted, fontSize: 12, marginTop: 4, marginBottom: 10 },
+  bodyText: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
 
   spinner: { marginVertical: 12 },
   inlineLoading: { flexDirection: "row", alignItems: "center", gap: 8 },
   inlineLoadingText: { color: COLORS.muted, fontSize: 12 },
   errorText: { color: "#FF9C9C", fontSize: 12 },
 
-  resultHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  resultHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   resultLabel: { fontSize: 14, fontWeight: "700", flex: 1 },
   confidenceText: { color: COLORS.muted, fontSize: 11 },
   brandText: { color: COLORS.muted, fontSize: 12, marginBottom: 6 },
   explanationText: { color: COLORS.white, fontSize: 13, lineHeight: 19 },
+  scoreRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#16435A",
+  },
+  scoreLabel: { color: COLORS.muted, fontSize: 10, fontWeight: "800" },
+  scoreValue: { color: COLORS.white, fontSize: 18, fontWeight: "800" },
 
   scanButton: {
     minHeight: 58,

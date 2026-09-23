@@ -38,3 +38,5 @@ mobile/.env
 # macOS
 # ==========================
 .DS_Store
+ai-engine.zip
+mobile/components.zip

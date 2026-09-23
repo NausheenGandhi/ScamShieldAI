@@ -62,7 +62,11 @@ def get_groq_client() -> Groq:
                 "Get a free key at https://console.groq.com/keys"
             )
 
-        _client = Groq(api_key=api_key)
+        _client = Groq(
+            api_key=api_key,
+            timeout=10.0,
+            max_retries=0,
+        )
 
     return _client
 

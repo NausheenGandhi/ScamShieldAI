@@ -1,8 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
+import React, { useEffect, useState, useCallback } from "react";
 
 import {
   NativeModules,
@@ -18,7 +14,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
 const { SmsNativeModule } = NativeModules;
-
 
 /* =========================================================
    DEFAULT STATE
@@ -85,49 +80,78 @@ const EMPTY_EVENT = {
   },
 };
 
-
 /* =========================================================
    NORMALIZE EVENT
 ========================================================= */
 
 function normalizeEvent(data) {
-
   if (!data) {
     return EMPTY_EVENT;
   }
+
+  /*
+   * New LangGraph structure:
+   *
+   * data
+   *   └── langgraph_result
+   *        └── analysis
+   *             └── agent_results
+   *                  ├── otp
+   *                  ├── url
+   *                  └── content
+   */
+
+  const graph = data.langgraph_result || data;
+
+  const finalResult = graph.analysis || {};
+
+  const agentResults = finalResult.agent_results || {};
+
+  const otpResult = agentResults.otp || null;
+
+  const urlResult = agentResults.url || null;
+
+  const contentResult = agentResults.content || null;
+
+  /*
+   * OTP screen should display the OTP agent result,
+   * not the overall LangGraph result.
+   */
+
+  const otpAnalysis = otpResult || EMPTY_EVENT.analysis;
 
   return {
     ...EMPTY_EVENT,
 
     ...data,
 
-    url_analysis: {
-      ...EMPTY_EVENT.url_analysis,
+    langgraph_result: graph,
 
-      ...(data.url_analysis || {}),
-    },
+    final_result: finalResult,
+
+    url_analysis: urlResult || {},
+
+    content_analysis: contentResult || {},
 
     analysis: {
       ...EMPTY_EVENT.analysis,
 
-      ...(data.analysis || {}),
+      ...otpAnalysis,
 
       signals: {
         ...EMPTY_EVENT.analysis.signals,
 
-        ...(data.analysis?.signals || {}),
+        ...(otpAnalysis.signals || {}),
       },
     },
   };
 }
-
 
 /* =========================================================
    MASK OTP FOR UI
 ========================================================= */
 
 function maskOtpInMessage(body, otpCode) {
-
   if (!body) {
     return "";
   }
@@ -136,12 +160,8 @@ function maskOtpInMessage(body, otpCode) {
     return body;
   }
 
-  return body.replace(
-    otpCode,
-    "[OTP]"
-  );
+  return body.replace(otpCode, "[OTP]");
 }
-
 
 /* =========================================================
    GROQ AI EXPLANATION
@@ -162,322 +182,159 @@ function maskOtpInMessage(body, otpCode) {
  * The risk engine remains responsible for the final verdict.
  */
 
-function getGroqExplanation(
-  event,
-  analysis
-) {
+function getGroqExplanation(event, analysis) {
+  if (analysis?.llm_reason && String(analysis.llm_reason).trim()) {
+    return String(analysis.llm_reason).trim();
+  }
 
   if (
     analysis?.short_explanation &&
-    String(
-      analysis.short_explanation
-    ).trim()
+    String(analysis.short_explanation).trim()
   ) {
-
-    return String(
-      analysis.short_explanation
-    ).trim();
+    return String(analysis.short_explanation).trim();
   }
-
 
   if (
     event?.url_analysis?.short_explanation &&
-    String(
-      event.url_analysis.short_explanation
-    ).trim()
+    String(event.url_analysis.short_explanation).trim()
   ) {
-
-    return String(
-      event.url_analysis.short_explanation
-    ).trim();
+    return String(event.url_analysis.short_explanation).trim();
   }
 
-
-  if (
-    analysis?.explanation &&
-    String(
-      analysis.explanation
-    ).trim()
-  ) {
-
-    return String(
-      analysis.explanation
-    ).trim();
+  if (analysis?.explanation && String(analysis.explanation).trim()) {
+    return String(analysis.explanation).trim();
   }
 
-
-  if (
-    event?.url_analysis?.explanation &&
-    String(
-      event.url_analysis.explanation
-    ).trim()
-  ) {
-
-    return String(
-      event.url_analysis.explanation
-    ).trim();
-  }
-
-
-  return (
-    "The AI security analysis is still being prepared."
-  );
+  return "The AI security analysis is still being prepared.";
 }
-
 
 /* =========================================================
    MAIN SCREEN
 ========================================================= */
 
-export default function OtpMonitoringScreen({
-  onBack,
-}) {
+export default function OtpMonitoringScreen({ onBack }) {
+  const [event, setEvent] = useState(EMPTY_EVENT);
 
-  const [
-    event,
-    setEvent,
-  ] = useState(
-    EMPTY_EVENT
-  );
+  const [isConnected, setIsConnected] = useState(false);
 
-  const [
-    isConnected,
-    setIsConnected,
-  ] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [
-    refreshing,
-    setRefreshing,
-  ] = useState(false);
-
-  const [
-    lastChecked,
-    setLastChecked,
-  ] = useState(null);
-
+  const [lastChecked, setLastChecked] = useState(null);
 
   /* =======================================================
      LOAD SMS FROM KOTLIN
   ======================================================= */
 
-  const loadLatestSms =
-    useCallback(async () => {
+  const loadLatestSms = useCallback(async () => {
+    try {
+      console.log("================================");
 
-      try {
+      console.log("OTP UI: Checking native module");
 
-        console.log(
-          "================================"
-        );
-
-        console.log(
-          "OTP UI: Checking native module"
-        );
-
-
-        if (!SmsNativeModule) {
-
-          console.error(
-            "OTP UI: SmsNativeModule is undefined"
-          );
-
-          setIsConnected(false);
-
-          return;
-        }
-
-
-        console.log(
-          "OTP UI: SmsNativeModule available"
-        );
-
-
-        const result =
-          await SmsNativeModule
-            .getLatestSmsEvent();
-
-
-        console.log(
-          "OTP UI: Native result:",
-          result
-        );
-
-
-        setIsConnected(true);
-
-
-        if (!result) {
-
-          console.log(
-            "OTP UI: No SMS event stored yet"
-          );
-
-          setLastChecked(
-            new Date()
-          );
-
-          return;
-        }
-
-
-        let parsed;
-
-
-        try {
-
-          parsed =
-            typeof result === "string"
-              ? JSON.parse(result)
-              : result;
-
-        } catch (jsonError) {
-
-          console.error(
-            "OTP UI: JSON parsing failed:",
-            jsonError
-          );
-
-          return;
-        }
-
-
-        console.log(
-          "OTP UI: Parsed event:",
-          parsed
-        );
-
-
-        const normalized =
-          normalizeEvent(parsed);
-
-
-        console.log(
-          "OTP UI: Verdict:",
-          normalized.analysis.level
-        );
-
-
-        console.log(
-          "OTP UI: Score:",
-          normalized.analysis.score
-        );
-
-
-        console.log(
-          "OTP UI: Confidence:",
-          normalized.analysis.confidence
-        );
-
-
-        setEvent(normalized);
-
-        setLastChecked(
-          new Date()
-        );
-
-
-      } catch (error) {
-
-        console.error(
-          "OTP UI: Failed to load SMS:",
-          error
-        );
+      if (!SmsNativeModule) {
+        console.error("OTP UI: SmsNativeModule is undefined");
 
         setIsConnected(false);
 
-      } finally {
-
-        setRefreshing(false);
+        return;
       }
 
-    }, []);
+      console.log("OTP UI: SmsNativeModule available");
 
+      const result = await SmsNativeModule.getLatestSmsEvent();
+
+      console.log("OTP UI: Native result:", result);
+
+      setIsConnected(true);
+
+      if (!result) {
+        console.log("OTP UI: No SMS event stored yet");
+
+        setLastChecked(new Date());
+
+        return;
+      }
+
+      let parsed;
+
+      try {
+        parsed = typeof result === "string" ? JSON.parse(result) : result;
+      } catch (jsonError) {
+        console.error("OTP UI: JSON parsing failed:", jsonError);
+
+        return;
+      }
+
+      console.log("OTP UI: Parsed event:", parsed);
+
+      const normalized = normalizeEvent(parsed);
+
+      console.log("OTP UI: Verdict:", normalized.analysis.level);
+
+      console.log("OTP UI: Score:", normalized.analysis.score);
+
+      console.log("OTP UI: Confidence:", normalized.analysis.confidence);
+
+      setEvent(normalized);
+
+      setLastChecked(new Date());
+    } catch (error) {
+      console.error("OTP UI: Failed to load SMS:", error);
+
+      setIsConnected(false);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   /* =======================================================
      START MONITORING
   ======================================================= */
 
   useEffect(() => {
-
     loadLatestSms();
 
-
-    const interval =
-      setInterval(() => {
-
-        loadLatestSms();
-
-      }, 1000);
-
+    const interval = setInterval(() => {
+      loadLatestSms();
+    }, 1000);
 
     return () => {
-
       clearInterval(interval);
-
     };
-
   }, [loadLatestSms]);
-
 
   /* =======================================================
      MANUAL REFRESH
   ======================================================= */
 
   const handleRefresh = () => {
-
     setRefreshing(true);
 
     loadLatestSms();
-
   };
-
 
   /* =======================================================
      DATA
   ======================================================= */
 
-  const analysis =
-    event.analysis ||
-    EMPTY_EVENT.analysis;
+  const analysis = event.analysis || EMPTY_EVENT.analysis;
 
+  const signals = analysis.signals || EMPTY_EVENT.analysis.signals;
 
-  const signals =
-    analysis.signals ||
-    EMPTY_EVENT.analysis.signals;
+  const level = String(analysis.level || "WAITING").toUpperCase();
 
+  const score = Number(analysis.score || 0);
 
-  const level =
-    String(
-      analysis.level ||
-      "WAITING"
-    ).toUpperCase();
-
-
-  const score =
-    Number(
-      analysis.score || 0
-    );
-
-
-  const confidence =
-    Number(
-      analysis.confidence || 0
-    );
-
+  const confidence = Number(analysis.confidence || 0);
 
   // Groq-generated explanation
-  const groqExplanation =
-    getGroqExplanation(
-      event,
-      analysis
-    );
-
+  const groqExplanation = getGroqExplanation(event, analysis);
 
   /* =======================================================
      COLORS
   ======================================================= */
 
   const getLevelColor = () => {
-
     if (level === "DANGER") {
       return "#FF3B5C";
     }
@@ -493,17 +350,13 @@ export default function OtpMonitoringScreen({
     return "#7C8CA5";
   };
 
-
-  const levelColor =
-    getLevelColor();
-
+  const levelColor = getLevelColor();
 
   /* =======================================================
      ICON
   ======================================================= */
 
   const getLevelIcon = () => {
-
     if (level === "DANGER") {
       return "warning";
     }
@@ -519,15 +372,12 @@ export default function OtpMonitoringScreen({
     return "shield-outline";
   };
 
-
   /* =======================================================
      USER-FRIENDLY VERDICT
   ======================================================= */
 
   const getVerdictTitle = () => {
-
     switch (level) {
-
       case "DANGER":
         return "Don't share your OTP.";
 
@@ -542,46 +392,34 @@ export default function OtpMonitoringScreen({
     }
   };
 
-
   const getVerdictDescription = () => {
-
     switch (level) {
-
       case "DANGER":
         return (
-          "This message shows signs of an OTP scam. "
-          + "Do not share your verification code."
+          "This message shows signs of an OTP scam. " +
+          "Do not share your verification code."
         );
 
       case "CAUTION":
         return (
-          "Some signals suggest you should "
-          + "verify this message before taking action."
+          "Some signals suggest you should " +
+          "verify this message before taking action."
         );
 
       case "SAFE":
-        return (
-          "No suspicious OTP behavior was detected "
-          + "in this message."
-        );
+        return "No suspicious OTP behavior was detected " + "in this message.";
 
       default:
-        return (
-          "Your phone is ready to monitor "
-          + "incoming SMS messages."
-        );
+        return "Your phone is ready to monitor " + "incoming SMS messages.";
     }
   };
-
 
   /* =======================================================
      USER ACTION
   ======================================================= */
 
   const getActionTitle = () => {
-
     switch (level) {
-
       case "DANGER":
         return "What should you do?";
 
@@ -596,11 +434,8 @@ export default function OtpMonitoringScreen({
     }
   };
 
-
   const getActionText = () => {
-
     switch (level) {
-
       case "DANGER":
         return [
           "Do not share the OTP with anyone.",
@@ -621,349 +456,189 @@ export default function OtpMonitoringScreen({
         ];
 
       default:
-        return [
-          "Incoming OTP messages will be checked automatically.",
-        ];
+        return ["Incoming OTP messages will be checked automatically."];
     }
   };
-
 
   /* =======================================================
      RISK PERCENTAGE
   ======================================================= */
 
-  const riskPercentage =
-    Math.min(
-      Math.round(
-        (score / 20) * 100
-      ),
-      100
-    );
-
+  const riskPercentage = Math.min(Math.round((score / 20) * 100), 100);
 
   /* =======================================================
      DETECTED SIGNALS
   ======================================================= */
 
   const signalRows = [
-
     {
-      label:
-        "Someone may be asking for your OTP",
+      label: "Someone may be asking for your OTP",
 
-      value:
-        !!signals.sharing_request,
+      value: !!signals.sharing_request,
 
-      icon:
-        "share-social-outline",
+      icon: "share-social-outline",
     },
 
     {
-      label:
-        "OTP may not have been requested",
+      label: "OTP may not have been requested",
 
-      value:
-        !!signals.possible_unrequested,
+      value: !!signals.possible_unrequested,
 
-      icon:
-        "person-remove-outline",
+      icon: "person-remove-outline",
     },
 
     {
-      label:
-        "Customer-care or third-party request",
+      label: "Customer-care or third-party request",
 
-      value:
-        !!signals.third_party_request,
+      value: !!signals.third_party_request,
 
-      icon:
-        "call-outline",
+      icon: "call-outline",
     },
 
     {
-      label:
-        "Message came from a plain mobile number",
+      label: "Message came from a plain mobile number",
 
-      value:
-        !!signals.plain_mobile_sender,
+      value: !!signals.plain_mobile_sender,
 
-      icon:
-        "phone-portrait-outline",
+      icon: "phone-portrait-outline",
     },
 
     {
-      label:
-        "Message contains a link",
+      label: "Message contains a link",
 
-      value:
-        !!signals.has_url,
+      value: !!signals.has_url,
 
-      icon:
-        "link-outline",
+      icon: "link-outline",
     },
 
     {
-      label:
-        "Urgent or pressuring language",
+      label: "Urgent or pressuring language",
 
-      value:
-        !!signals.urgency,
+      value: !!signals.urgency,
 
-      icon:
-        "time-outline",
+      icon: "time-outline",
     },
 
     {
-      label:
-        "Account threat detected",
+      label: "Account threat detected",
 
-      value:
-        !!signals.threat,
+      value: !!signals.threat,
 
-      icon:
-        "warning-outline",
+      icon: "warning-outline",
     },
 
     {
-      label:
-        "Repeated OTP activity",
+      label: "Repeated OTP activity",
 
-      value:
-        !!signals.repeated_otp,
+      value: !!signals.repeated_otp,
 
-      icon:
-        "repeat-outline",
+      icon: "repeat-outline",
     },
-
   ];
 
-
-  const detectedSignals =
-    signalRows.filter(
-      (signal) =>
-        signal.value
-    );
-
+  const detectedSignals = signalRows.filter((signal) => signal.value);
 
   /* =======================================================
      MASKED SMS
   ======================================================= */
 
-  const displayedMessage =
-    maskOtpInMessage(
-      event.body,
-      analysis.otp_code
-    );
-
+  const displayedMessage = maskOtpInMessage(event.body, analysis.otp_code);
 
   /* =======================================================
      RENDER
   ======================================================= */
 
   return (
-
-    <View
-      style={styles.container}
-    >
-
+    <View style={styles.container}>
       <LinearGradient
-        colors={[
-          "#071A2D",
-          "#061425",
-          "#050B17",
-        ]}
-        style={
-          StyleSheet.absoluteFill
-        }
+        colors={["#071A2D", "#061425", "#050B17"]}
+        style={StyleSheet.absoluteFill}
       />
-
 
       {/* =================================================
           HEADER
       ================================================= */}
 
-      <View
-        style={styles.header}
-      >
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={onBack}
-        >
-
-          <Ionicons
-            name="arrow-back"
-            size={23}
-            color="#FFFFFF"
-          />
-
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <Ionicons name="arrow-back" size={23} color="#FFFFFF" />
         </TouchableOpacity>
 
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>OTP Protection</Text>
 
-        <View
-          style={styles.headerText}
-        >
-
-          <Text
-            style={styles.headerTitle}
-          >
-            OTP Protection
-          </Text>
-
-
-          <Text
-            style={styles.headerSubtitle}
-          >
-            Automatic SMS security
-          </Text>
-
+          <Text style={styles.headerSubtitle}>Automatic SMS security</Text>
         </View>
-
 
         <View
           style={[
             styles.monitorBadge,
 
             {
-              backgroundColor:
-                isConnected
-                  ? "#0E3029"
-                  : "#30291B",
+              backgroundColor: isConnected ? "#0E3029" : "#30291B",
             },
           ]}
         >
-
           <View
             style={[
               styles.liveDot,
 
               {
-                backgroundColor:
-                  isConnected
-                    ? "#31D6A3"
-                    : "#FFB020",
+                backgroundColor: isConnected ? "#31D6A3" : "#FFB020",
               },
             ]}
           />
-
 
           <Text
             style={[
               styles.monitorText,
 
               {
-                color:
-                  isConnected
-                    ? "#31D6A3"
-                    : "#FFB020",
+                color: isConnected ? "#31D6A3" : "#FFB020",
               },
             ]}
           >
-
-            {isConnected
-              ? "MONITORING"
-              : "WAITING"}
-
+            {isConnected ? "MONITORING" : "WAITING"}
           </Text>
-
         </View>
-
       </View>
-
 
       {/* =================================================
           CONTENT
       ================================================= */}
 
       <ScrollView
-
-        showsVerticalScrollIndicator={
-          false
-        }
-
-        contentContainerStyle={
-          styles.scrollContent
-        }
-
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
-
           <RefreshControl
-
-            refreshing={
-              refreshing
-            }
-
-            onRefresh={
-              handleRefresh
-            }
-
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
             tintColor="#31D6A3"
-
           />
-
         }
-
       >
-
-
         {/* =================================================
             MONITORING STATUS
         ================================================= */}
 
-        <View
-          style={styles.monitorCard}
-        >
-
-          <View
-            style={styles.monitorIcon}
-          >
-
-            <Ionicons
-              name="shield-checkmark"
-              size={27}
-              color="#31D6A3"
-            />
-
+        <View style={styles.monitorCard}>
+          <View style={styles.monitorIcon}>
+            <Ionicons name="shield-checkmark" size={27} color="#31D6A3" />
           </View>
 
+          <View style={styles.monitorInfo}>
+            <Text style={styles.monitorTitle}>Protection is active</Text>
 
-          <View
-            style={styles.monitorInfo}
-          >
-
-            <Text
-              style={styles.monitorTitle}
-            >
-              Protection is active
+            <Text style={styles.monitorDescription}>
+              Incoming SMS messages are checked automatically.
             </Text>
-
-
-            <Text
-              style={
-                styles.monitorDescription
-              }
-            >
-              Incoming SMS messages are
-              checked automatically.
-            </Text>
-
           </View>
 
-
-          <View
-            style={styles.activeBadge}
-          >
-
-            <Text
-              style={styles.activeText}
-            >
-              ACTIVE
-            </Text>
-
+          <View style={styles.activeBadge}>
+            <Text style={styles.activeText}>ACTIVE</Text>
           </View>
-
         </View>
-
 
         {/* =================================================
             VERDICT
@@ -974,843 +649,404 @@ export default function OtpMonitoringScreen({
             styles.verdictCard,
 
             {
-              borderColor:
-                levelColor + "65",
+              borderColor: levelColor + "65",
             },
           ]}
         >
-
           <View
             style={[
               styles.verdictIcon,
 
               {
-                backgroundColor:
-                  levelColor + "18",
+                backgroundColor: levelColor + "18",
               },
             ]}
           >
-
-            <Ionicons
-              name={
-                getLevelIcon()
-              }
-              size={39}
-              color={
-                levelColor
-              }
-            />
-
+            <Ionicons name={getLevelIcon()} size={39} color={levelColor} />
           </View>
 
-
-          <Text
-            style={styles.verdictLabel}
-          >
-            SECURITY STATUS
-          </Text>
-
+          <Text style={styles.verdictLabel}>SECURITY STATUS</Text>
 
           <Text
             style={[
               styles.verdictLevel,
 
               {
-                color:
-                  levelColor,
+                color: levelColor,
               },
             ]}
           >
             {level}
           </Text>
 
+          <Text style={styles.verdictTitle}>{getVerdictTitle()}</Text>
 
-          <Text
-            style={styles.verdictTitle}
-          >
-            {getVerdictTitle()}
-          </Text>
-
-
-          <Text
-            style={
-              styles.verdictDescription
-            }
-          >
+          <Text style={styles.verdictDescription}>
             {getVerdictDescription()}
           </Text>
-
 
           {/* RISK BAR */}
 
           {level !== "WAITING" && (
-
-            <View
-              style={styles.riskContainer}
-            >
-
-              <View
-                style={styles.riskBarHeader}
-              >
-
-                <Text
-                  style={styles.riskLabel}
-                >
-                  Risk level
-                </Text>
-
+            <View style={styles.riskContainer}>
+              <View style={styles.riskBarHeader}>
+                <Text style={styles.riskLabel}>Risk level</Text>
 
                 <Text
                   style={[
                     styles.riskPercentage,
 
                     {
-                      color:
-                        levelColor,
+                      color: levelColor,
                     },
                   ]}
                 >
                   {riskPercentage}%
                 </Text>
-
               </View>
 
-
-              <View
-                style={
-                  styles.riskBarBackground
-                }
-              >
-
+              <View style={styles.riskBarBackground}>
                 <View
                   style={[
                     styles.riskBarFill,
 
                     {
-                      width:
-                        `${riskPercentage}%`,
+                      width: `${riskPercentage}%`,
 
-                      backgroundColor:
-                        levelColor,
+                      backgroundColor: levelColor,
                     },
                   ]}
                 />
-
               </View>
-
             </View>
-
           )}
 
+          <View style={styles.scoreRow}>
+            <View style={styles.scoreItem}>
+              <Text style={styles.scoreValue}>{score}</Text>
 
-          <View
-            style={styles.scoreRow}
-          >
-
-            <View
-              style={styles.scoreItem}
-            >
-
-              <Text
-                style={styles.scoreValue}
-              >
-                {score}
-              </Text>
-
-              <Text
-                style={styles.scoreLabel}
-              >
-                RISK SCORE
-              </Text>
-
+              <Text style={styles.scoreLabel}>RISK SCORE</Text>
             </View>
 
+            <View style={styles.verticalDivider} />
 
-            <View
-              style={styles.verticalDivider}
-            />
+            <View style={styles.scoreItem}>
+              <Text style={styles.scoreValue}>{confidence}%</Text>
 
-
-            <View
-              style={styles.scoreItem}
-            >
-
-              <Text
-                style={styles.scoreValue}
-              >
-                {confidence}%
-              </Text>
-
-              <Text
-                style={styles.scoreLabel}
-              >
-                CONFIDENCE
-              </Text>
-
+              <Text style={styles.scoreLabel}>CONFIDENCE</Text>
             </View>
-
           </View>
-
         </View>
-
 
         {/* =================================================
             ACTION CARD
         ================================================= */}
 
-        <Text
-          style={styles.sectionTitle}
-        >
-          {getActionTitle()}
-        </Text>
-
+        <Text style={styles.sectionTitle}>{getActionTitle()}</Text>
 
         <View
           style={[
             styles.actionCard,
 
             {
-              borderColor:
-                levelColor + "35",
+              borderColor: levelColor + "35",
             },
           ]}
         >
-
-          {getActionText().map(
-            (text, index) => (
-
+          {getActionText().map((text, index) => (
+            <View key={`${text}-${index}`} style={styles.actionRow}>
               <View
-                key={`${text}-${index}`}
-                style={styles.actionRow}
+                style={[
+                  styles.actionIcon,
+
+                  {
+                    backgroundColor: levelColor + "15",
+                  },
+                ]}
               >
-
-                <View
-                  style={[
-                    styles.actionIcon,
-
-                    {
-                      backgroundColor:
-                        levelColor + "15",
-                    },
-                  ]}
-                >
-
-                  <Ionicons
-                    name={
-                      level === "DANGER"
-                        ? "close"
-                        : "checkmark"
-                    }
-                    size={16}
-                    color={
-                      levelColor
-                    }
-                  />
-
-                </View>
-
-
-                <Text
-                  style={
-                    styles.actionText
-                  }
-                >
-                  {text}
-                </Text>
-
+                <Ionicons
+                  name={level === "DANGER" ? "close" : "checkmark"}
+                  size={16}
+                  color={levelColor}
+                />
               </View>
 
-            )
-          )}
-
+              <Text style={styles.actionText}>{text}</Text>
+            </View>
+          ))}
         </View>
-
 
         {/* =================================================
             WHY FLAGGED
         ================================================= */}
 
-        <Text
-          style={styles.sectionTitle}
-        >
-          Why was this flagged?
-        </Text>
+        <Text style={styles.sectionTitle}>Why was this flagged?</Text>
 
-
-        <View
-          style={styles.reasonsCard}
-        >
-
-          {detectedSignals.length ===
-          0 ? (
-
-            <View
-              style={styles.clearRow}
-            >
-
-              <View
-                style={styles.clearIcon}
-              >
-
-                <Ionicons
-                  name="checkmark"
-                  size={17}
-                  color="#31D6A3"
-                />
-
+        <View style={styles.reasonsCard}>
+          {detectedSignals.length === 0 ? (
+            <View style={styles.clearRow}>
+              <View style={styles.clearIcon}>
+                <Ionicons name="checkmark" size={17} color="#31D6A3" />
               </View>
 
-
-              <Text
-                style={
-                  styles.clearText
-                }
-              >
-                No suspicious OTP behavior
-                was detected.
+              <Text style={styles.clearText}>
+                No suspicious OTP behavior was detected.
               </Text>
-
             </View>
-
           ) : (
-
-            detectedSignals.map(
-              (signal) => (
-
-                <View
-                  key={signal.label}
-                  style={styles.reasonRow}
-                >
-
-                  <View
-                    style={styles.reasonIcon}
-                  >
-
-                    <Ionicons
-                      name={
-                        signal.icon
-                      }
-                      size={17}
-                      color="#FFB020"
-                    />
-
-                  </View>
-
-
-                  <Text
-                    style={
-                      styles.reasonText
-                    }
-                  >
-                    {signal.label}
-                  </Text>
-
+            detectedSignals.map((signal) => (
+              <View key={signal.label} style={styles.reasonRow}>
+                <View style={styles.reasonIcon}>
+                  <Ionicons name={signal.icon} size={17} color="#FFB020" />
                 </View>
 
-              )
-            )
-
+                <Text style={styles.reasonText}>{signal.label}</Text>
+              </View>
+            ))
           )}
-
         </View>
-
 
         {/* =================================================
             LATEST SMS
         ================================================= */}
 
-        <Text
-          style={styles.sectionTitle}
-        >
-          Latest message
-        </Text>
+        <Text style={styles.sectionTitle}>Latest message</Text>
 
-
-        <View
-          style={styles.smsCard}
-        >
-
-          <View
-            style={styles.smsHeader}
-          >
-
-            <View
-              style={styles.smsIcon}
-            >
-
-              <Ionicons
-                name="chatbubble-ellipses"
-                size={21}
-                color="#6EA8FF"
-              />
-
+        <View style={styles.smsCard}>
+          <View style={styles.smsHeader}>
+            <View style={styles.smsIcon}>
+              <Ionicons name="chatbubble-ellipses" size={21} color="#6EA8FF" />
             </View>
 
-
-            <View
-              style={styles.senderInfo}
-            >
-
-              <Text
-                style={styles.sender}
-              >
-                {event.sender ||
-                  "Waiting for SMS"}
+            <View style={styles.senderInfo}>
+              <Text style={styles.sender}>
+                {event.sender || "Waiting for SMS"}
               </Text>
 
-
-              <Text
-                style={styles.time}
-              >
-                {formatTime(
-                  event.timestamp
-                )}
-              </Text>
-
+              <Text style={styles.time}>{formatTime(event.timestamp)}</Text>
             </View>
-
           </View>
 
-
-          <View
-            style={styles.messageBox}
-          >
-
-            <Text
-              style={styles.message}
-            >
-              {displayedMessage ||
-                "Your next SMS will appear here."}
+          <View style={styles.messageBox}>
+            <Text style={styles.message}>
+              {displayedMessage || "Your next SMS will appear here."}
             </Text>
-
           </View>
-
         </View>
-
 
         {/* =================================================
             GROQ AI EXPLANATION
         ================================================= */}
 
-        <Text
-          style={styles.sectionTitle}
-        >
-          Why was this message flagged?
-        </Text>
-
+        <Text style={styles.sectionTitle}>Why was this message flagged?</Text>
 
         <View
           style={[
             styles.aiExplanationCard,
 
             {
-              borderColor:
-                levelColor + "45",
+              borderColor: levelColor + "45",
             },
           ]}
         >
-
           {/* AI HEADER */}
 
-          <View
-            style={styles.aiExplanationHeader}
-          >
-
+          <View style={styles.aiExplanationHeader}>
             <View
               style={[
                 styles.aiExplanationIcon,
 
                 {
-                  backgroundColor:
-                    levelColor + "18",
+                  backgroundColor: levelColor + "18",
                 },
               ]}
             >
-
-              <Ionicons
-                name="sparkles"
-                size={21}
-                color={levelColor}
-              />
-
+              <Ionicons name="sparkles" size={21} color={levelColor} />
             </View>
 
-
-            <View
-              style={
-                styles.aiExplanationHeaderText
-              }
-            >
-
-              <Text
-                style={
-                  styles.aiExplanationTitle
-                }
-              >
+            <View style={styles.aiExplanationHeaderText}>
+              <Text style={styles.aiExplanationTitle}>
                 AI Security Analysis
               </Text>
 
-
-              <Text
-                style={
-                  styles.aiExplanationSubtitle
-                }
-              >
+              <Text style={styles.aiExplanationSubtitle}>
                 Explanation generated by Groq
               </Text>
-
             </View>
-
           </View>
-
 
           {/* AI EXPLANATION */}
 
-          <View
-            style={
-              styles.aiExplanationBody
-            }
-          >
-
-            <Text
-              style={
-                styles.aiExplanationText
-              }
-            >
-              {groqExplanation}
-            </Text>
-
+          <View style={styles.aiExplanationBody}>
+            <Text style={styles.aiExplanationText}>{groqExplanation}</Text>
           </View>
-
         </View>
-
 
         {/* =================================================
             OTP PRIVACY
         ================================================= */}
 
         {signals.otp_detected && (
-
-          <View
-            style={styles.privacyCard}
-          >
-
-            <View
-              style={styles.privacyIcon}
-            >
-
-              <Ionicons
-                name="lock-closed"
-                size={20}
-                color="#31D6A3"
-              />
-
+          <View style={styles.privacyCard}>
+            <View style={styles.privacyIcon}>
+              <Ionicons name="lock-closed" size={20} color="#31D6A3" />
             </View>
 
+            <View style={styles.privacyInfo}>
+              <Text style={styles.privacyTitle}>OTP privacy protected</Text>
 
-            <View
-              style={styles.privacyInfo}
-            >
-
-              <Text
-                style={styles.privacyTitle}
-              >
-                OTP privacy protected
+              <Text style={styles.privacyText}>
+                Your actual verification code stays on your device.
               </Text>
-
-
-              <Text
-                style={styles.privacyText}
-              >
-                Your actual verification code
-                stays on your device.
-              </Text>
-
             </View>
-
           </View>
-
         )}
-
 
         {/* =================================================
             CONTEXT
         ================================================= */}
 
-        <Text
-          style={styles.sectionTitle}
-        >
-          Message context
-        </Text>
+        <Text style={styles.sectionTitle}>Message context</Text>
 
-
-        <View
-          style={styles.contextCard}
-        >
-
+        <View style={styles.contextCard}>
           <ContextRow
             icon="phone-portrait-outline"
             label="Recently active app"
-            value={
-              formatAppName(
-                signals.foreground_app ||
-                event.foreground_app
-              )
-            }
+            value={formatAppName(
+              signals.foreground_app || event.foreground_app,
+            )}
           />
 
-
-          <View
-            style={styles.rowDivider}
-          />
-
+          <View style={styles.rowDivider} />
 
           <ContextRow
             icon="checkmark-circle-outline"
             label="Expected OTP"
-            value={
-              signals.expected_otp
-                ? "Likely requested"
-                : "Not confirmed"
-            }
-            valueColor={
-              signals.expected_otp
-                ? "#31D6A3"
-                : "#FFB020"
-            }
+            value={signals.expected_otp ? "Likely requested" : "Not confirmed"}
+            valueColor={signals.expected_otp ? "#31D6A3" : "#FFB020"}
           />
 
-
-          <View
-            style={styles.rowDivider}
-          />
-
+          <View style={styles.rowDivider} />
 
           <ContextRow
             icon="lock-open-outline"
             label="Screen"
-            value={
-              signals.screen_unlocked
-                ? "Unlocked"
-                : "Locked"
-            }
+            value={signals.screen_unlocked ? "Unlocked" : "Locked"}
           />
-
         </View>
-
 
         {/* =================================================
             TECHNICAL DETAILS
         ================================================= */}
 
-        <Text
-          style={styles.sectionTitle}
-        >
-          Detection details
-        </Text>
+        <Text style={styles.sectionTitle}>Detection details</Text>
 
+        <View style={styles.signalsCard}>
+          {signalRows.map((signal, index) => {
+            const color = signal.value ? "#FFB020" : "#31D6A3";
 
-        <View
-          style={styles.signalsCard}
-        >
+            return (
+              <View
+                key={signal.label}
+                style={[
+                  styles.signalRow,
 
-          {signalRows.map(
-            (signal, index) => {
-
-              const color =
-                signal.value
-                  ? "#FFB020"
-                  : "#31D6A3";
-
-
-              return (
-
+                  index !== signalRows.length - 1 && styles.signalBorder,
+                ]}
+              >
                 <View
-                  key={signal.label}
                   style={[
-                    styles.signalRow,
+                    styles.signalIcon,
 
-                    index !==
-                      signalRows.length - 1 &&
-                      styles.signalBorder,
+                    {
+                      backgroundColor: color + "15",
+                    },
                   ]}
                 >
-
-                  <View
-                    style={[
-                      styles.signalIcon,
-
-                      {
-                        backgroundColor:
-                          color + "15",
-                      },
-                    ]}
-                  >
-
-                    <Ionicons
-                      name={
-                        signal.icon
-                      }
-                      size={18}
-                      color={color}
-                    />
-
-                  </View>
-
-
-                  <Text
-                    style={
-                      styles.signalLabel
-                    }
-                  >
-                    {signal.label}
-                  </Text>
-
-
-                  <Text
-                    style={[
-                      styles.signalStatus,
-
-                      {
-                        color,
-                      },
-                    ]}
-                  >
-                    {signal.value
-                      ? "DETECTED"
-                      : "CLEAR"}
-                  </Text>
-
+                  <Ionicons name={signal.icon} size={18} color={color} />
                 </View>
 
-              );
+                <Text style={styles.signalLabel}>{signal.label}</Text>
 
-            }
-          )}
+                <Text
+                  style={[
+                    styles.signalStatus,
 
+                    {
+                      color,
+                    },
+                  ]}
+                >
+                  {signal.value ? "DETECTED" : "CLEAR"}
+                </Text>
+              </View>
+            );
+          })}
         </View>
-
 
         {/* =================================================
             PRIVACY FOOTER
         ================================================= */}
 
-        <View
-          style={styles.privacyFooter}
-        >
+        <View style={styles.privacyFooter}>
+          <Ionicons name="shield-checkmark-outline" size={18} color="#31D6A3" />
 
-          <Ionicons
-            name="shield-checkmark-outline"
-            size={18}
-            color="#31D6A3"
-          />
-
-
-          <Text
-            style={
-              styles.privacyFooterText
-            }
-          >
-            Your OTP is processed locally
-            before AI analysis.
+          <Text style={styles.privacyFooterText}>
+            Your OTP is processed locally before AI analysis.
           </Text>
-
         </View>
-
 
         {/* =================================================
             LAST CHECKED
         ================================================= */}
 
-        <Text
-          style={styles.lastChecked}
-        >
-          Last checked:{" "}
-          {lastChecked
-            ? lastChecked.toLocaleTimeString()
-            : "--"}
+        <Text style={styles.lastChecked}>
+          Last checked: {lastChecked ? lastChecked.toLocaleTimeString() : "--"}
         </Text>
 
-
-        <View
-          style={styles.bottomSpace}
-        />
-
+        <View style={styles.bottomSpace} />
       </ScrollView>
-
     </View>
   );
 }
-
 
 /* =========================================================
    CONTEXT ROW
 ========================================================= */
 
-function ContextRow({
-  icon,
-  label,
-  value,
-  valueColor,
-}) {
-
+function ContextRow({ icon, label, value, valueColor }) {
   return (
-
-    <View
-      style={styles.contextRow}
-    >
-
-      <View
-        style={styles.contextIcon}
-      >
-
-        <Ionicons
-          name={icon}
-          size={18}
-          color="#7FA8FF"
-        />
-
+    <View style={styles.contextRow}>
+      <View style={styles.contextIcon}>
+        <Ionicons name={icon} size={18} color="#7FA8FF" />
       </View>
 
-
-      <Text
-        style={styles.contextLabel}
-      >
-        {label}
-      </Text>
-
+      <Text style={styles.contextLabel}>{label}</Text>
 
       <Text
         style={[
           styles.contextValue,
 
           valueColor && {
-            color:
-              valueColor,
+            color: valueColor,
           },
         ]}
         numberOfLines={1}
       >
         {value}
       </Text>
-
     </View>
   );
 }
-
 
 /* =========================================================
    APP NAME FORMATTER
 ========================================================= */
 
-function formatAppName(
-  packageName
-) {
-
+function formatAppName(packageName) {
   if (!packageName) {
     return "Not detected";
   }
-
 
   /*
    * Avoid displaying raw package names
@@ -1821,1041 +1057,922 @@ function formatAppName(
    * in the normal user interface.
    */
 
-  if (
-    packageName.includes(".")
-  ) {
+  if (packageName.includes(".")) {
+    const parts = packageName.split(".");
 
-    const parts =
-      packageName.split(".");
+    const lastPart = parts[parts.length - 1];
 
-    const lastPart =
-      parts[parts.length - 1];
-
-    if (
-      lastPart &&
-      lastPart.length > 2
-    ) {
-
-      return capitalize(
-        lastPart
-      );
+    if (lastPart && lastPart.length > 2) {
+      return capitalize(lastPart);
     }
   }
 
-
   return packageName;
 }
-
 
 /* =========================================================
    CAPITALIZE
 ========================================================= */
 
-function capitalize(
-  text
-) {
-
+function capitalize(text) {
   if (!text) {
     return "";
   }
 
-  return (
-    text.charAt(0).toUpperCase() +
-    text.slice(1)
-  );
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
-
 
 /* =========================================================
    FORMAT TIME
 ========================================================= */
 
-function formatTime(
-  timestamp
-) {
-
+function formatTime(timestamp) {
   if (!timestamp) {
     return "--";
   }
 
-
   try {
-
-    return new Date(
-      Number(timestamp)
-    ).toLocaleTimeString(
-      [],
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }
-    );
-
+    return new Date(Number(timestamp)).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
   } catch {
-
     return "--";
   }
 }
-
 
 /* =========================================================
    STYLES
 ========================================================= */
 
-const styles =
-  StyleSheet.create({
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#050B17",
+  },
 
-    container: {
-      flex: 1,
-      backgroundColor: "#050B17",
-    },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
 
-
-    scrollContent: {
-      paddingHorizontal: 20,
-      paddingBottom: 40,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        HEADER
     ===================================================== */
 
-    header: {
-      height: 82,
+  header: {
+    height: 82,
 
-      paddingHorizontal: 20,
+    paddingHorizontal: 20,
 
-      flexDirection: "row",
+    flexDirection: "row",
 
-      alignItems: "center",
+    alignItems: "center",
 
-      borderBottomWidth: 1,
+    borderBottomWidth: 1,
 
-      borderBottomColor: "#17253B",
-    },
+    borderBottomColor: "#17253B",
+  },
 
+  backButton: {
+    width: 42,
+    height: 42,
 
-    backButton: {
-      width: 42,
-      height: 42,
+    borderRadius: 13,
 
-      borderRadius: 13,
+    backgroundColor: "#101D32",
 
-      backgroundColor: "#101D32",
+    justifyContent: "center",
 
-      justifyContent: "center",
+    alignItems: "center",
 
-      alignItems: "center",
+    marginRight: 13,
+  },
 
-      marginRight: 13,
-    },
+  headerText: {
+    flex: 1,
+  },
 
+  headerTitle: {
+    color: "#FFFFFF",
 
-    headerText: {
-      flex: 1,
-    },
+    fontSize: 21,
 
+    fontWeight: "800",
+  },
 
-    headerTitle: {
-      color: "#FFFFFF",
+  headerSubtitle: {
+    color: "#71819A",
 
-      fontSize: 21,
+    fontSize: 11,
 
-      fontWeight: "800",
-    },
+    marginTop: 3,
+  },
 
+  monitorBadge: {
+    flexDirection: "row",
 
-    headerSubtitle: {
-      color: "#71819A",
+    alignItems: "center",
 
-      fontSize: 11,
+    paddingHorizontal: 10,
 
-      marginTop: 3,
-    },
+    paddingVertical: 7,
 
+    borderRadius: 20,
+  },
 
-    monitorBadge: {
-      flexDirection: "row",
+  liveDot: {
+    width: 7,
 
-      alignItems: "center",
+    height: 7,
 
-      paddingHorizontal: 10,
+    borderRadius: 5,
 
-      paddingVertical: 7,
+    marginRight: 6,
+  },
 
-      borderRadius: 20,
-    },
+  monitorText: {
+    fontSize: 8,
 
+    fontWeight: "900",
 
-    liveDot: {
-      width: 7,
+    letterSpacing: 0.4,
+  },
 
-      height: 7,
-
-      borderRadius: 5,
-
-      marginRight: 6,
-    },
-
-
-    monitorText: {
-      fontSize: 8,
-
-      fontWeight: "900",
-
-      letterSpacing: 0.4,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        MONITOR CARD
     ===================================================== */
 
-    monitorCard: {
-      marginTop: 20,
+  monitorCard: {
+    marginTop: 20,
 
-      padding: 16,
+    padding: 16,
 
-      borderRadius: 18,
+    borderRadius: 18,
 
-      backgroundColor: "#0D1A2D",
+    backgroundColor: "#0D1A2D",
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      borderColor: "#1B314C",
+    borderColor: "#1B314C",
 
-      flexDirection: "row",
+    flexDirection: "row",
 
-      alignItems: "center",
-    },
+    alignItems: "center",
+  },
 
+  monitorIcon: {
+    width: 50,
 
-    monitorIcon: {
-      width: 50,
+    height: 50,
 
-      height: 50,
+    borderRadius: 15,
 
-      borderRadius: 15,
+    backgroundColor: "#0C2C29",
 
-      backgroundColor: "#0C2C29",
+    justifyContent: "center",
 
-      justifyContent: "center",
+    alignItems: "center",
 
-      alignItems: "center",
+    marginRight: 13,
+  },
 
-      marginRight: 13,
-    },
+  monitorInfo: {
+    flex: 1,
+  },
 
+  monitorTitle: {
+    color: "#FFFFFF",
 
-    monitorInfo: {
-      flex: 1,
-    },
+    fontSize: 15,
 
+    fontWeight: "800",
+  },
 
-    monitorTitle: {
-      color: "#FFFFFF",
+  monitorDescription: {
+    color: "#71819A",
 
-      fontSize: 15,
+    fontSize: 10.5,
 
-      fontWeight: "800",
-    },
+    lineHeight: 16,
 
+    marginTop: 3,
+  },
 
-    monitorDescription: {
-      color: "#71819A",
+  activeBadge: {
+    backgroundColor: "#10342D",
 
-      fontSize: 10.5,
+    paddingHorizontal: 9,
 
-      lineHeight: 16,
+    paddingVertical: 6,
 
-      marginTop: 3,
-    },
+    borderRadius: 8,
+  },
 
+  activeText: {
+    color: "#31D6A3",
 
-    activeBadge: {
-      backgroundColor: "#10342D",
+    fontSize: 8,
 
-      paddingHorizontal: 9,
+    fontWeight: "900",
 
-      paddingVertical: 6,
+    letterSpacing: 0.5,
+  },
 
-      borderRadius: 8,
-    },
-
-
-    activeText: {
-      color: "#31D6A3",
-
-      fontSize: 8,
-
-      fontWeight: "900",
-
-      letterSpacing: 0.5,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        VERDICT
     ===================================================== */
 
-    verdictCard: {
-      marginTop: 16,
+  verdictCard: {
+    marginTop: 16,
 
-      borderRadius: 23,
+    borderRadius: 23,
 
-      backgroundColor: "#0B1728",
+    backgroundColor: "#0B1728",
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      padding: 23,
+    padding: 23,
 
-      alignItems: "center",
-    },
+    alignItems: "center",
+  },
 
+  verdictIcon: {
+    width: 74,
 
-    verdictIcon: {
-      width: 74,
+    height: 74,
 
-      height: 74,
+    borderRadius: 37,
 
-      borderRadius: 37,
+    justifyContent: "center",
 
-      justifyContent: "center",
+    alignItems: "center",
+  },
 
-      alignItems: "center",
-    },
+  verdictLabel: {
+    color: "#64758F",
 
+    fontSize: 9,
 
-    verdictLabel: {
-      color: "#64758F",
+    fontWeight: "900",
 
-      fontSize: 9,
+    letterSpacing: 1.5,
 
-      fontWeight: "900",
+    marginTop: 14,
+  },
 
-      letterSpacing: 1.5,
+  verdictLevel: {
+    fontSize: 30,
 
-      marginTop: 14,
-    },
+    fontWeight: "900",
 
+    marginTop: 2,
+  },
 
-    verdictLevel: {
-      fontSize: 30,
+  verdictTitle: {
+    color: "#FFFFFF",
 
-      fontWeight: "900",
+    fontSize: 16,
 
-      marginTop: 2,
-    },
+    fontWeight: "800",
 
+    textAlign: "center",
 
-    verdictTitle: {
-      color: "#FFFFFF",
+    marginTop: 7,
+  },
 
-      fontSize: 16,
+  verdictDescription: {
+    color: "#8796AA",
 
-      fontWeight: "800",
+    fontSize: 11,
 
-      textAlign: "center",
+    lineHeight: 17,
 
-      marginTop: 7,
-    },
+    textAlign: "center",
 
+    maxWidth: 310,
 
-    verdictDescription: {
-      color: "#8796AA",
+    marginTop: 7,
+  },
 
-      fontSize: 11,
+  riskContainer: {
+    width: "100%",
 
-      lineHeight: 17,
+    marginTop: 20,
+  },
 
-      textAlign: "center",
+  riskBarHeader: {
+    flexDirection: "row",
 
-      maxWidth: 310,
+    justifyContent: "space-between",
 
-      marginTop: 7,
-    },
+    marginBottom: 7,
+  },
 
+  riskLabel: {
+    color: "#718198",
 
-    riskContainer: {
-      width: "100%",
+    fontSize: 10,
 
-      marginTop: 20,
-    },
+    fontWeight: "700",
+  },
 
+  riskPercentage: {
+    fontSize: 10,
 
-    riskBarHeader: {
-      flexDirection: "row",
+    fontWeight: "900",
+  },
 
-      justifyContent: "space-between",
+  riskBarBackground: {
+    height: 7,
 
-      marginBottom: 7,
-    },
+    backgroundColor: "#18283D",
 
+    borderRadius: 10,
 
-    riskLabel: {
-      color: "#718198",
+    overflow: "hidden",
 
-      fontSize: 10,
+    width: "100%",
+  },
 
-      fontWeight: "700",
-    },
+  riskBarFill: {
+    height: "100%",
 
+    borderRadius: 10,
+  },
 
-    riskPercentage: {
-      fontSize: 10,
+  scoreRow: {
+    flexDirection: "row",
 
-      fontWeight: "900",
-    },
+    width: "100%",
 
+    marginTop: 20,
 
-    riskBarBackground: {
-      height: 7,
+    paddingTop: 17,
 
-      backgroundColor: "#18283D",
+    borderTopWidth: 1,
 
-      borderRadius: 10,
+    borderTopColor: "#1A2A40",
+  },
 
-      overflow: "hidden",
+  scoreItem: {
+    flex: 1,
 
-      width: "100%",
-    },
+    alignItems: "center",
+  },
 
+  scoreValue: {
+    color: "#FFFFFF",
 
-    riskBarFill: {
-      height: "100%",
+    fontSize: 21,
 
-      borderRadius: 10,
-    },
+    fontWeight: "900",
+  },
 
+  scoreLabel: {
+    color: "#65758C",
 
-    scoreRow: {
-      flexDirection: "row",
+    fontSize: 8,
 
-      width: "100%",
+    fontWeight: "800",
 
-      marginTop: 20,
+    marginTop: 4,
 
-      paddingTop: 17,
+    letterSpacing: 0.4,
+  },
 
-      borderTopWidth: 1,
+  verticalDivider: {
+    width: 1,
 
-      borderTopColor: "#1A2A40",
-    },
+    backgroundColor: "#1A2A40",
+  },
 
-
-    scoreItem: {
-      flex: 1,
-
-      alignItems: "center",
-    },
-
-
-    scoreValue: {
-      color: "#FFFFFF",
-
-      fontSize: 21,
-
-      fontWeight: "900",
-    },
-
-
-    scoreLabel: {
-      color: "#65758C",
-
-      fontSize: 8,
-
-      fontWeight: "800",
-
-      marginTop: 4,
-
-      letterSpacing: 0.4,
-    },
-
-
-    verticalDivider: {
-      width: 1,
-
-      backgroundColor: "#1A2A40",
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        SECTION
     ===================================================== */
 
-    sectionTitle: {
-      color: "#DDE7F5",
+  sectionTitle: {
+    color: "#DDE7F5",
 
-      fontSize: 15,
+    fontSize: 15,
 
-      fontWeight: "800",
+    fontWeight: "800",
 
-      marginTop: 24,
+    marginTop: 24,
 
-      marginBottom: 10,
-    },
+    marginBottom: 10,
+  },
 
-
-    /* =====================================================
+  /* =====================================================
        ACTION CARD
     ===================================================== */
 
-    actionCard: {
-      backgroundColor: "#0D192B",
+  actionCard: {
+    backgroundColor: "#0D192B",
 
-      borderRadius: 18,
+    borderRadius: 18,
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      padding: 15,
-    },
+    padding: 15,
+  },
 
+  actionRow: {
+    flexDirection: "row",
 
-    actionRow: {
-      flexDirection: "row",
+    alignItems: "flex-start",
 
-      alignItems: "flex-start",
+    marginBottom: 12,
+  },
 
-      marginBottom: 12,
-    },
+  actionRowLast: {
+    marginBottom: 0,
+  },
 
+  actionIcon: {
+    width: 30,
 
-    actionRowLast: {
-      marginBottom: 0,
-    },
+    height: 30,
 
+    borderRadius: 9,
 
-    actionIcon: {
-      width: 30,
+    justifyContent: "center",
 
-      height: 30,
+    alignItems: "center",
 
-      borderRadius: 9,
+    marginRight: 10,
+  },
 
-      justifyContent: "center",
+  actionText: {
+    flex: 1,
 
-      alignItems: "center",
+    color: "#B9C6D6",
 
-      marginRight: 10,
-    },
+    fontSize: 12,
 
+    lineHeight: 18,
 
-    actionText: {
-      flex: 1,
+    paddingTop: 5,
+  },
 
-      color: "#B9C6D6",
-
-      fontSize: 12,
-
-      lineHeight: 18,
-
-      paddingTop: 5,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        WHY FLAGGED
     ===================================================== */
 
-    reasonsCard: {
-      backgroundColor: "#0D192B",
+  reasonsCard: {
+    backgroundColor: "#0D192B",
 
-      borderRadius: 18,
+    borderRadius: 18,
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      borderColor: "#293042",
+    borderColor: "#293042",
 
-      padding: 15,
-    },
+    padding: 15,
+  },
 
+  reasonRow: {
+    flexDirection: "row",
 
-    reasonRow: {
-      flexDirection: "row",
+    alignItems: "center",
 
-      alignItems: "center",
+    marginBottom: 12,
+  },
 
-      marginBottom: 12,
-    },
+  reasonIcon: {
+    width: 34,
 
+    height: 34,
 
-    reasonIcon: {
-      width: 34,
+    borderRadius: 10,
 
-      height: 34,
+    backgroundColor: "#2B2517",
 
-      borderRadius: 10,
+    justifyContent: "center",
 
-      backgroundColor: "#2B2517",
+    alignItems: "center",
 
-      justifyContent: "center",
+    marginRight: 10,
+  },
 
-      alignItems: "center",
+  reasonText: {
+    flex: 1,
 
-      marginRight: 10,
-    },
+    color: "#B8C4D3",
 
+    fontSize: 12,
 
-    reasonText: {
-      flex: 1,
+    lineHeight: 18,
+  },
 
-      color: "#B8C4D3",
+  clearRow: {
+    flexDirection: "row",
 
-      fontSize: 12,
+    alignItems: "center",
+  },
 
-      lineHeight: 18,
-    },
+  clearIcon: {
+    width: 34,
 
+    height: 34,
 
-    clearRow: {
-      flexDirection: "row",
+    borderRadius: 10,
 
-      alignItems: "center",
-    },
+    backgroundColor: "#0C2B27",
 
+    justifyContent: "center",
 
-    clearIcon: {
-      width: 34,
+    alignItems: "center",
 
-      height: 34,
+    marginRight: 10,
+  },
 
-      borderRadius: 10,
+  clearText: {
+    flex: 1,
 
-      backgroundColor: "#0C2B27",
+    color: "#AFC1B9",
 
-      justifyContent: "center",
+    fontSize: 12,
 
-      alignItems: "center",
+    lineHeight: 18,
+  },
 
-      marginRight: 10,
-    },
-
-
-    clearText: {
-      flex: 1,
-
-      color: "#AFC1B9",
-
-      fontSize: 12,
-
-      lineHeight: 18,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        SMS
     ===================================================== */
 
-    smsCard: {
-      backgroundColor: "#0D192B",
+  smsCard: {
+    backgroundColor: "#0D192B",
 
-      borderRadius: 18,
+    borderRadius: 18,
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      borderColor: "#1A2B43",
+    borderColor: "#1A2B43",
 
-      padding: 15,
-    },
+    padding: 15,
+  },
 
+  smsHeader: {
+    flexDirection: "row",
 
-    smsHeader: {
-      flexDirection: "row",
+    alignItems: "center",
+  },
 
-      alignItems: "center",
-    },
+  smsIcon: {
+    width: 42,
 
+    height: 42,
 
-    smsIcon: {
-      width: 42,
+    borderRadius: 12,
 
-      height: 42,
+    backgroundColor: "#102342",
 
-      borderRadius: 12,
+    justifyContent: "center",
 
-      backgroundColor: "#102342",
+    alignItems: "center",
 
-      justifyContent: "center",
+    marginRight: 11,
+  },
 
-      alignItems: "center",
+  senderInfo: {
+    flex: 1,
+  },
 
-      marginRight: 11,
-    },
+  sender: {
+    color: "#FFFFFF",
 
+    fontSize: 15,
 
-    senderInfo: {
-      flex: 1,
-    },
+    fontWeight: "800",
+  },
 
+  time: {
+    color: "#65758D",
 
-    sender: {
-      color: "#FFFFFF",
+    fontSize: 10,
 
-      fontSize: 15,
+    marginTop: 3,
+  },
 
-      fontWeight: "800",
-    },
+  messageBox: {
+    backgroundColor: "#081322",
 
+    marginTop: 12,
 
-    time: {
-      color: "#65758D",
+    padding: 14,
 
-      fontSize: 10,
+    borderRadius: 13,
+  },
 
-      marginTop: 3,
-    },
+  message: {
+    color: "#B7C4D5",
 
+    fontSize: 13,
 
-    messageBox: {
-      backgroundColor: "#081322",
+    lineHeight: 20,
+  },
 
-      marginTop: 12,
-
-      padding: 14,
-
-      borderRadius: 13,
-    },
-
-
-    message: {
-      color: "#B7C4D5",
-
-      fontSize: 13,
-
-      lineHeight: 20,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        GROQ AI EXPLANATION
     ===================================================== */
 
-    aiExplanationCard: {
-      backgroundColor: "#0D192B",
+  aiExplanationCard: {
+    backgroundColor: "#0D192B",
 
-      borderRadius: 19,
+    borderRadius: 19,
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      padding: 16,
-    },
+    padding: 16,
+  },
 
+  aiExplanationHeader: {
+    flexDirection: "row",
 
-    aiExplanationHeader: {
-      flexDirection: "row",
+    alignItems: "center",
 
-      alignItems: "center",
+    marginBottom: 14,
+  },
 
-      marginBottom: 14,
-    },
+  aiExplanationIcon: {
+    width: 43,
 
+    height: 43,
 
-    aiExplanationIcon: {
-      width: 43,
+    borderRadius: 13,
 
-      height: 43,
+    justifyContent: "center",
 
-      borderRadius: 13,
+    alignItems: "center",
 
-      justifyContent: "center",
+    marginRight: 11,
+  },
 
-      alignItems: "center",
+  aiExplanationHeaderText: {
+    flex: 1,
+  },
 
-      marginRight: 11,
-    },
+  aiExplanationTitle: {
+    color: "#FFFFFF",
 
+    fontSize: 14,
 
-    aiExplanationHeaderText: {
-      flex: 1,
-    },
+    fontWeight: "800",
+  },
 
+  aiExplanationSubtitle: {
+    color: "#687A91",
 
-    aiExplanationTitle: {
-      color: "#FFFFFF",
+    fontSize: 9.5,
 
-      fontSize: 14,
+    marginTop: 3,
+  },
 
-      fontWeight: "800",
-    },
+  aiExplanationBody: {
+    backgroundColor: "#081322",
 
+    borderRadius: 13,
 
-    aiExplanationSubtitle: {
-      color: "#687A91",
+    padding: 14,
+  },
 
-      fontSize: 9.5,
+  aiExplanationText: {
+    color: "#B9C6D6",
 
-      marginTop: 3,
-    },
+    fontSize: 12,
 
+    lineHeight: 20,
+  },
 
-    aiExplanationBody: {
-      backgroundColor: "#081322",
-
-      borderRadius: 13,
-
-      padding: 14,
-    },
-
-
-    aiExplanationText: {
-      color: "#B9C6D6",
-
-      fontSize: 12,
-
-      lineHeight: 20,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        PRIVACY
     ===================================================== */
 
-    privacyCard: {
-      marginTop: 14,
+  privacyCard: {
+    marginTop: 14,
 
-      padding: 14,
+    padding: 14,
 
-      borderRadius: 16,
+    borderRadius: 16,
 
-      backgroundColor: "#0B2421",
+    backgroundColor: "#0B2421",
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      borderColor: "#17453E",
+    borderColor: "#17453E",
 
-      flexDirection: "row",
+    flexDirection: "row",
 
-      alignItems: "center",
-    },
+    alignItems: "center",
+  },
 
+  privacyIcon: {
+    width: 40,
 
-    privacyIcon: {
-      width: 40,
+    height: 40,
 
-      height: 40,
+    borderRadius: 12,
 
-      borderRadius: 12,
+    backgroundColor: "#0D332E",
 
-      backgroundColor: "#0D332E",
+    justifyContent: "center",
 
-      justifyContent: "center",
+    alignItems: "center",
 
-      alignItems: "center",
+    marginRight: 11,
+  },
 
-      marginRight: 11,
-    },
+  privacyInfo: {
+    flex: 1,
+  },
 
+  privacyTitle: {
+    color: "#D5F5EA",
 
-    privacyInfo: {
-      flex: 1,
-    },
+    fontSize: 13,
 
+    fontWeight: "800",
+  },
 
-    privacyTitle: {
-      color: "#D5F5EA",
+  privacyText: {
+    color: "#7EA79C",
 
-      fontSize: 13,
+    fontSize: 10.5,
 
-      fontWeight: "800",
-    },
+    lineHeight: 16,
 
+    marginTop: 3,
+  },
 
-    privacyText: {
-      color: "#7EA79C",
-
-      fontSize: 10.5,
-
-      lineHeight: 16,
-
-      marginTop: 3,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        CONTEXT
     ===================================================== */
 
-    contextCard: {
-      backgroundColor: "#0D192B",
+  contextCard: {
+    backgroundColor: "#0D192B",
 
-      borderRadius: 18,
+    borderRadius: 18,
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      borderColor: "#1A2B43",
+    borderColor: "#1A2B43",
 
-      paddingHorizontal: 15,
-    },
+    paddingHorizontal: 15,
+  },
 
+  contextRow: {
+    minHeight: 57,
 
-    contextRow: {
-      minHeight: 57,
+    flexDirection: "row",
 
-      flexDirection: "row",
+    alignItems: "center",
+  },
 
-      alignItems: "center",
-    },
+  contextIcon: {
+    width: 35,
 
+    height: 35,
 
-    contextIcon: {
-      width: 35,
+    borderRadius: 10,
 
-      height: 35,
+    backgroundColor: "#10213A",
 
-      borderRadius: 10,
+    justifyContent: "center",
 
-      backgroundColor: "#10213A",
+    alignItems: "center",
 
-      justifyContent: "center",
+    marginRight: 10,
+  },
 
-      alignItems: "center",
+  contextLabel: {
+    color: "#8393A9",
 
-      marginRight: 10,
-    },
+    fontSize: 11,
 
+    flex: 1,
+  },
 
-    contextLabel: {
-      color: "#8393A9",
+  contextValue: {
+    color: "#D8E2EF",
 
-      fontSize: 11,
+    fontSize: 11,
 
-      flex: 1,
-    },
+    maxWidth: 165,
+  },
 
+  rowDivider: {
+    height: 1,
 
-    contextValue: {
-      color: "#D8E2EF",
+    backgroundColor: "#17263A",
+  },
 
-      fontSize: 11,
-
-      maxWidth: 165,
-    },
-
-
-    rowDivider: {
-      height: 1,
-
-      backgroundColor: "#17263A",
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        TECHNICAL SIGNALS
     ===================================================== */
 
-    signalsCard: {
-      backgroundColor: "#0D192B",
+  signalsCard: {
+    backgroundColor: "#0D192B",
 
-      borderRadius: 18,
+    borderRadius: 18,
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      borderColor: "#1A2B43",
+    borderColor: "#1A2B43",
 
-      paddingHorizontal: 15,
-    },
+    paddingHorizontal: 15,
+  },
 
+  signalRow: {
+    minHeight: 56,
 
-    signalRow: {
-      minHeight: 56,
+    flexDirection: "row",
 
-      flexDirection: "row",
+    alignItems: "center",
+  },
 
-      alignItems: "center",
-    },
+  signalBorder: {
+    borderBottomWidth: 1,
 
+    borderBottomColor: "#17263A",
+  },
 
-    signalBorder: {
-      borderBottomWidth: 1,
+  signalIcon: {
+    width: 35,
 
-      borderBottomColor: "#17263A",
-    },
+    height: 35,
 
+    borderRadius: 10,
 
-    signalIcon: {
-      width: 35,
+    justifyContent: "center",
 
-      height: 35,
+    alignItems: "center",
 
-      borderRadius: 10,
+    marginRight: 10,
+  },
 
-      justifyContent: "center",
+  signalLabel: {
+    flex: 1,
 
-      alignItems: "center",
+    color: "#B8C5D5",
 
-      marginRight: 10,
-    },
+    fontSize: 11,
+  },
 
+  signalStatus: {
+    fontSize: 8,
 
-    signalLabel: {
-      flex: 1,
+    fontWeight: "900",
 
-      color: "#B8C5D5",
+    letterSpacing: 0.3,
+  },
 
-      fontSize: 11,
-    },
-
-
-    signalStatus: {
-      fontSize: 8,
-
-      fontWeight: "900",
-
-      letterSpacing: 0.3,
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        PRIVACY FOOTER
     ===================================================== */
 
-    privacyFooter: {
-      marginTop: 20,
+  privacyFooter: {
+    marginTop: 20,
 
-      padding: 13,
+    padding: 13,
 
-      borderRadius: 14,
+    borderRadius: 14,
 
-      backgroundColor: "#081A19",
+    backgroundColor: "#081A19",
 
-      flexDirection: "row",
+    flexDirection: "row",
 
-      alignItems: "center",
+    alignItems: "center",
 
-      justifyContent: "center",
-    },
+    justifyContent: "center",
+  },
 
+  privacyFooterText: {
+    color: "#70958D",
 
-    privacyFooterText: {
-      color: "#70958D",
+    fontSize: 10,
 
-      fontSize: 10,
+    marginLeft: 8,
 
-      marginLeft: 8,
+    textAlign: "center",
+  },
 
-      textAlign: "center",
-    },
-
-
-    /* =====================================================
+  /* =====================================================
        LAST CHECKED
     ===================================================== */
 
-    lastChecked: {
-      color: "#4F6077",
+  lastChecked: {
+    color: "#4F6077",
 
-      textAlign: "center",
+    textAlign: "center",
 
-      fontSize: 9,
+    fontSize: 9,
 
-      marginTop: 13,
-    },
+    marginTop: 13,
+  },
 
-
-    bottomSpace: {
-      height: 30,
-    },
-
-  });
+  bottomSpace: {
+    height: 30,
+  },
+});

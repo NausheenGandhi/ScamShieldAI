@@ -1,6 +1,4 @@
 """
-contact_agent.py
-
 Contact Agent for SMS scam detection.
 
 Original responsibilities (UNCHANGED):
@@ -29,16 +27,42 @@ Backward compatibility: the function signature and the top-level
 response fields (is_saved_contact, contact_name, level, score,
 confidence, reasons, short_explanation, signals) are UNCHANGED so the
 existing /analyze-contact endpoint in main.py and the existing
-ContactAgentScreen.js UI keep working exactly as before. The full new
-structured response (contact/sender/sender_reputation/message_analysis/
-risk_signals/impersonation/trust) is added alongside it.
+ContactAgentScreen.js UI keep working exactly as before.
+The full new structured response
+(contact/sender/sender_reputation/message_analysis/risk_signals/
+impersonation/trust) is added alongside it.
 """
 
+import os
+import sys
 import time
 import threading
 import difflib
 import logging
+
 from typing import Any, Dict, List, Optional, Tuple
+
+
+# ============================================================
+# PROJECT PATH
+# ============================================================
+
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..")
+)
+
+BACKEND_DIR = os.path.join(
+    PROJECT_ROOT,
+    "backend"
+)
+
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+
+# ============================================================
+# IMPORTS
+# ============================================================
 
 from utils.groq_client import groq_chat, looks_truncated
 from prompts.contact_prompts import CONTACT_EXPLANATION_PROMPT
@@ -51,34 +75,47 @@ from .contact import reputation as contact_reputation
 
 from app.database.mongodb import ensure_indexes
 
+
 logger = logging.getLogger("scamshield.contact_agent")
+
 
 try:
     ensure_indexes()
-except Exception as e:  # pragma: no cover - defensive, must never block startup
-    logger.warning("MongoDB index setup skipped: %s", str(e))
+except Exception as e:
+    logger.warning(
+        "MongoDB index setup skipped: %s",
+        str(e)
+    )
 
 
 # ============================================================
-# CONFIG (UNCHANGED)
+# CONFIG
 # ============================================================
 
-HISTORY_RETENTION_SECONDS = 24 * 60 * 60      # keep 24h of history per sender
-BURST_WINDOW_SECONDS = 5 * 60                 # "burst" = N msgs within 5 min
-BURST_MESSAGE_THRESHOLD = 3                   # >=3 msgs in the window => burst
-SIMILARITY_THRESHOLD = 0.82                   # how close two messages must be to count as "the same"
-MAX_HISTORY_PER_SENDER = 200                  # hard cap so memory can't grow unbounded
+HISTORY_RETENTION_SECONDS = 24 * 60 * 60
+BURST_WINDOW_SECONDS = 5 * 60
+BURST_MESSAGE_THRESHOLD = 3
+SIMILARITY_THRESHOLD = 0.82
+MAX_HISTORY_PER_SENDER = 200
 
 
 # ============================================================
-# IN-MEMORY HISTORY STORE (UNCHANGED)
+# IN-MEMORY HISTORY STORE
 # ============================================================
 
 class _ContactHistoryStore:
+
     def __init__(self):
+
         self._lock = threading.Lock()
+
         # normalized_sender -> list of (timestamp, message_text)
-        self._history: Dict[str, List[Tuple[float, str]]] = {}
+
+        self._history: Dict[
+            str,
+            List[Tuple[float, str]]
+        ] = {}
+
 
     def record_and_get(
         self,
@@ -86,20 +123,38 @@ class _ContactHistoryStore:
         message: str,
         now: Optional[float] = None,
     ) -> List[Tuple[float, str]]:
-        """Adds this message to history, prunes old entries, and returns
-        the sender's history *including* the message just added."""
+
+        """
+        Adds this message to history, prunes old entries,
+        and returns the sender's history including this message.
+        """
 
         now = now if now is not None else time.time()
 
         with self._lock:
-            entries = self._history.setdefault(sender_key, [])
-            entries.append((now, message))
+
+            entries = self._history.setdefault(
+                sender_key,
+                []
+            )
+
+            entries.append(
+                (now, message)
+            )
 
             cutoff = now - HISTORY_RETENTION_SECONDS
-            entries[:] = [e for e in entries if e[0] >= cutoff]
+
+            entries[:] = [
+                e
+                for e in entries
+                if e[0] >= cutoff
+            ]
 
             if len(entries) > MAX_HISTORY_PER_SENDER:
-                del entries[: len(entries) - MAX_HISTORY_PER_SENDER]
+
+                del entries[
+                    :len(entries) - MAX_HISTORY_PER_SENDER
+                ]
 
             return list(entries)
 
@@ -108,20 +163,25 @@ _STORE = _ContactHistoryStore()
 
 
 # ============================================================
-# STEP 1: NORMALIZE SENDER (UNCHANGED)
+# STEP 1: NORMALIZE SENDER
 # ============================================================
 
-def normalize_sender(sender: str) -> str:
+def normalize_sender(
+    sender: str
+) -> str:
+
     """
-    Collapses formatting differences (+91, spaces, dashes) so the same
-    phone number is recognized as the same history key regardless of
-    how it's written in a given SMS.
+    Collapses formatting differences (+91, spaces, dashes)
+    so the same phone number is recognized as the same
+    history key regardless of how it's written.
     """
+
     if not sender:
         return "unknown"
 
     cleaned = (
-        sender.replace("+", "")
+        sender
+        .replace("+", "")
         .replace("-", "")
         .replace(" ", "")
         .replace("(", "")
@@ -132,7 +192,7 @@ def normalize_sender(sender: str) -> str:
 
 
 # ============================================================
-# STEP 2: FREQUENCY / BURST ANALYSIS (UNCHANGED)
+# STEP 2: FREQUENCY / BURST ANALYSIS
 # ============================================================
 
 def analyze_frequency(
@@ -142,11 +202,23 @@ def analyze_frequency(
 
     now = now if now is not None else time.time()
 
-    count_5min = sum(1 for ts, _ in history if now - ts <= BURST_WINDOW_SECONDS)
-    count_1hour = sum(1 for ts, _ in history if now - ts <= 60 * 60)
+    count_5min = sum(
+        1
+        for ts, _ in history
+        if now - ts <= BURST_WINDOW_SECONDS
+    )
+
+    count_1hour = sum(
+        1
+        for ts, _ in history
+        if now - ts <= 60 * 60
+    )
+
     count_24hour = len(history)
 
-    burst_detected = count_5min >= BURST_MESSAGE_THRESHOLD
+    burst_detected = (
+        count_5min >= BURST_MESSAGE_THRESHOLD
+    )
 
     return {
         "message_count_5min": count_5min,
@@ -158,42 +230,66 @@ def analyze_frequency(
 
 
 # ============================================================
-# STEP 3: CONTENT REPETITION ANALYSIS (UNCHANGED)
+# STEP 3: CONTENT REPETITION ANALYSIS
 # ============================================================
 
 def analyze_repetition(
     history: List[Tuple[float, str]],
     current_message: str,
 ) -> Dict[str, Any]:
+
     """
-    Compares the current message against recent prior messages from the
-    SAME sender. A near-identical message being resent repeatedly is a
-    classic sign of an automated spam/scam blast - including from a
-    friend's contact whose phone/account has been compromised.
+    Compares the current message against recent prior messages
+    from the SAME sender. A near-identical message being resent
+    repeatedly is a classic sign of an automated spam/scam blast.
     """
 
-    past_messages = [m for _, m in history[:-1]]  # exclude the message just added
+    past_messages = [
+        m
+        for _, m in history[:-1]
+    ]
 
     if not past_messages or not current_message:
-        return {"repeated_content": False, "repeat_count": 0, "max_similarity": 0.0}
+
+        return {
+            "repeated_content": False,
+            "repeat_count": 0,
+            "max_similarity": 0.0,
+        }
 
     similarities = [
-        difflib.SequenceMatcher(None, current_message.lower(), past.lower()).ratio()
+        difflib.SequenceMatcher(
+            None,
+            current_message.lower(),
+            past.lower()
+        ).ratio()
         for past in past_messages
     ]
 
-    max_similarity = max(similarities) if similarities else 0.0
-    repeat_count = sum(1 for s in similarities if s >= SIMILARITY_THRESHOLD)
+    max_similarity = (
+        max(similarities)
+        if similarities
+        else 0.0
+    )
+
+    repeat_count = sum(
+        1
+        for s in similarities
+        if s >= SIMILARITY_THRESHOLD
+    )
 
     return {
         "repeated_content": repeat_count >= 1,
         "repeat_count": repeat_count,
-        "max_similarity": round(max_similarity, 2),
+        "max_similarity": round(
+            max_similarity,
+            2
+        ),
     }
 
 
 # ============================================================
-# STEP 4: LEGACY BURST/REPETITION RISK SCORING (UNCHANGED)
+# STEP 4: LEGACY BURST / REPETITION RISK SCORING
 # ============================================================
 
 def calculate_contact_risk(
@@ -203,83 +299,149 @@ def calculate_contact_risk(
 ) -> Dict[str, Any]:
 
     score = 0
+
     reasons: List[str] = []
 
-    burst_detected = frequency["burst_detected"]
-    is_first_contact = frequency["is_first_contact"]
-    message_count_1hour = frequency["message_count_1hour"]
+    burst_detected = frequency[
+        "burst_detected"
+    ]
 
-    repeated_content = repetition["repeated_content"]
+    is_first_contact = frequency[
+        "is_first_contact"
+    ]
+
+    message_count_1hour = frequency[
+        "message_count_1hour"
+    ]
+
+    repeated_content = repetition[
+        "repeated_content"
+    ]
+
 
     # --------------------------------------------------------
     # Unknown sender
     # --------------------------------------------------------
+
     if not is_saved_contact:
+
         score += 2
-        reasons.append("Sender is not in your saved contacts")
+
+        reasons.append(
+            "Sender is not in your saved contacts"
+        )
 
         if is_first_contact:
+
             score += 1
-            reasons.append("This is the first message from this sender")
+
+            reasons.append(
+                "This is the first message from this sender"
+            )
+
 
     # --------------------------------------------------------
     # Burst / high frequency
     # --------------------------------------------------------
+
     if burst_detected:
+
         score += 4
+
         reasons.append(
-            f"{frequency['message_count_5min']} messages received from this "
-            f"sender in the last 5 minutes"
+            f"{frequency['message_count_5min']} "
+            "messages received from this sender "
+            "in the last 5 minutes"
         )
+
     elif message_count_1hour >= 5:
+
         score += 2
-        reasons.append("Unusually high message frequency from this sender in the last hour")
+
+        reasons.append(
+            "Unusually high message frequency from "
+            "this sender in the last hour"
+        )
+
 
     # --------------------------------------------------------
     # Repeated / near-identical content
     # --------------------------------------------------------
-    if repeated_content:
-        score += 4
-        reasons.append("The same or very similar message has been sent repeatedly")
 
-        # A KNOWN contact blasting repeated/identical messages is a strong
-        # sign their account/device has been compromised, not a normal
-        # conversation - so we weight this scenario a bit higher.
+    if repeated_content:
+
+        score += 4
+
+        reasons.append(
+            "The same or very similar message has "
+            "been sent repeatedly"
+        )
+
         if is_saved_contact:
+
             score += 2
+
             reasons.append(
-                "This looks like automated spam from a saved contact - "
-                "their phone or account may be compromised"
+                "This looks like automated spam from "
+                "a saved contact - their phone or "
+                "account may be compromised"
             )
 
+
     # --------------------------------------------------------
-    # Trust note for a normal, low-frequency saved contact
+    # Normal saved contact
     # --------------------------------------------------------
-    if is_saved_contact and not burst_detected and not repeated_content:
-        reasons.append("Message is from a saved contact with normal messaging patterns")
+
+    if (
+        is_saved_contact
+        and not burst_detected
+        and not repeated_content
+    ):
+
+        reasons.append(
+            "Message is from a saved contact with "
+            "normal messaging patterns"
+        )
+
 
     # --------------------------------------------------------
     # Final level
     # --------------------------------------------------------
+
     if score >= 8:
+
         level = "DANGER"
+
     elif score >= 4:
+
         level = "CAUTION"
+
     else:
+
         level = "SAFE"
 
-    confidence = min(50 + score * 6, 95)
+
+    confidence = min(
+        50 + score * 6,
+        95
+    )
+
 
     return {
+
         "level": level,
+
         "score": score,
+
         "confidence": confidence,
+
         "reasons": reasons,
+
     }
 
 
 # ============================================================
-# STEP 5: SHORT EXPLANATION (LLM, optional) (UNCHANGED)
+# STEP 5: SHORT EXPLANATION
 # ============================================================
 
 def generate_contact_explanation(
@@ -289,64 +451,126 @@ def generate_contact_explanation(
 ) -> str:
 
     fallback = {
-        "DANGER": "This sender's messaging pattern looks suspicious. Be cautious before responding or clicking anything.",
-        "CAUTION": "Something about this sender's activity is a little unusual. Double-check before you act on this message.",
-        "SAFE": "No unusual sender behavior detected.",
+
+        "DANGER":
+            "This sender's messaging pattern looks suspicious. "
+            "Be cautious before responding or clicking anything.",
+
+        "CAUTION":
+            "Something about this sender's activity is a little unusual. "
+            "Double-check before you act on this message.",
+
+        "SAFE":
+            "No unusual sender behavior detected.",
     }
 
+
     try:
+
         prompt = CONTACT_EXPLANATION_PROMPT.format(
+
             level=level,
-            reasons="; ".join(reasons) if reasons else "No unusual signals detected.",
-            contact_name=contact_name or "this sender",
+
+            reasons=(
+                "; ".join(reasons)
+                if reasons
+                else "No unusual signals detected."
+            ),
+
+            contact_name=(
+                contact_name
+                or "this sender"
+            ),
+
         )
 
-        # 150 tokens was routinely too tight for 2-3 sentences + an action
-        # step, causing responses to cut off mid-sentence (finish_reason
-        # "length"). Give it more headroom, and if it *still* comes back
-        # looking cut off, retry once before giving up - never show a
-        # dangling sentence to the user.
-        for attempt_max_tokens in (300, 400):
+
+        for attempt_max_tokens in (
+            300,
+            400
+        ):
+
             text = groq_chat(
-                messages=[{"role": "user", "content": prompt}],
+
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+
                 temperature=0.3,
+
                 max_tokens=attempt_max_tokens,
+
             )
+
 
             if not looks_truncated(text):
+
                 return text
 
+
             logger.warning(
-                "Contact explanation looked truncated at max_tokens=%d - retrying.",
-                attempt_max_tokens,
+                "Contact explanation looked truncated "
+                "at max_tokens=%d - retrying.",
+                attempt_max_tokens
             )
 
-        # Exhausted retries and it's still truncated - fall back rather
-        # than show broken text.
-        logger.warning("Contact explanation still truncated after retry - using fallback.")
-        return fallback.get(level, fallback["SAFE"])
+
+        logger.warning(
+            "Contact explanation still truncated "
+            "after retry - using fallback."
+        )
+
+        return fallback.get(
+            level,
+            fallback["SAFE"]
+        )
+
 
     except Exception as e:
-        print("Contact explanation LLM call failed:", str(e))
-        return fallback.get(level, fallback["SAFE"])
+
+        print(
+            "Contact explanation LLM call failed:",
+            str(e)
+        )
+
+        return fallback.get(
+            level,
+            fallback["SAFE"]
+        )
 
 
 # ============================================================
 # NEW HELPERS
 # ============================================================
 
-def _map_verdict_to_legacy_level(verdict: str) -> str:
+def _map_verdict_to_legacy_level(
+    verdict: str
+) -> str:
+
     """
-    Keeps the top-level "level" field compatible with the existing
-    ContactAgentScreen.js UI, which only knows DANGER/CAUTION/SAFE.
+    Keeps the top-level "level" field compatible
+    with the existing ContactAgentScreen.js UI.
     """
+
     return {
+
         "TRUSTED": "SAFE",
+
         "LOW_RISK": "SAFE",
+
         "CAUTION": "CAUTION",
+
         "SUSPICIOUS": "DANGER",
+
         "HIGH_RISK": "DANGER",
-    }.get(verdict, "SAFE")
+
+    }.get(
+        verdict,
+        "SAFE"
+    )
 
 
 def _estimate_confidence(
@@ -355,32 +579,70 @@ def _estimate_confidence(
     frequency: Dict[str, Any],
     repetition: Dict[str, Any],
 ) -> int:
+
     confidence = 55
 
+
     if sender_doc.get("available"):
+
         confidence += 15
-    if sender_doc.get("total_messages", 0) > 3:
+
+
+    if sender_doc.get(
+        "total_messages",
+        0
+    ) > 3:
+
         confidence += 10
-    if frequency.get("burst_detected") or repetition.get("repeated_content"):
+
+
+    if (
+        frequency.get("burst_detected")
+        or repetition.get("repeated_content")
+    ):
+
         confidence += 10
+
+
     if any([
+
         signals.get("financial_request"),
+
         signals.get("credential_request"),
+
         signals.get("threat"),
+
         signals.get("secrecy_request"),
+
     ]):
+
         confidence += 5
 
-    return min(confidence, 95)
+
+    return min(
+        confidence,
+        95
+    )
 
 
-def _dedupe_preserve_order(items: List[str]) -> List[str]:
+def _dedupe_preserve_order(
+    items: List[str]
+) -> List[str]:
+
     seen = set()
+
     result = []
+
+
     for item in items:
+
         if item not in seen:
+
             seen.add(item)
+
             result.append(item)
+
+
     return result
 
 
@@ -395,198 +657,512 @@ def analyze_contact(
     contact_name: Optional[str] = None,
     timestamp: Optional[float] = None,
 ) -> Dict[str, Any]:
+
     """
     Main entry point used by backend/main.py.
-
-    Parameters (UNCHANGED - do not change this signature, main.py depends
-    on it exactly as-is):
-        sender             Raw SMS sender (phone number or short code).
-        message            SMS body.
-        is_saved_contact   Whether Android/RN found this number in the
-                            device's contacts. MUST be computed on-device.
-        contact_name       Saved contact's display name, if any.
-        timestamp          Epoch seconds for this message (defaults to now).
-
-    Returns:
-        Backward-compatible top-level fields (is_saved_contact,
-        contact_name, level, score, confidence, reasons,
-        short_explanation, signals) PLUS the new structured response
-        (contact, sender, sender_reputation, message_analysis,
-        risk_signals, impersonation, trust).
     """
 
-    now = timestamp if timestamp is not None else time.time()
+    now = (
+        timestamp
+        if timestamp is not None
+        else time.time()
+    )
+
 
     if not sender:
+
         sender = "unknown"
+
+
     if message is None:
+
         message = ""
 
+
     # ------------------------------------------------------------
-    # 1-3. Sender history is kept for contact-level reputation tracking,
-    #     but burst/repetition detection is owned by the Pattern Agent.
+    # 1-3. Sender history
     # ------------------------------------------------------------
-    history_key = normalize_sender(sender)
-    history = _STORE.record_and_get(history_key, message, now=now)
+
+    history_key = normalize_sender(
+        sender
+    )
+
+    history = _STORE.record_and_get(
+        history_key,
+        message,
+        now=now
+    )
+
 
     # ------------------------------------------------------------
     # 4. Sender ID type classification
     # ------------------------------------------------------------
-    sender_classification = classify_sender(sender)
-    mongo_sender_key = sender_classification.get("normalized") or history_key
+
+    sender_classification = classify_sender(
+        sender
+    )
+
+    mongo_sender_key = (
+        sender_classification.get("normalized")
+        or history_key
+    )
+
 
     # ------------------------------------------------------------
-    # 5. Message context signals + NORMAL/SUSPICIOUS/SPAM/SCAM
+    # 5. Message context signals + classification
     # ------------------------------------------------------------
-    signals = detect_signals(message)
-    classification_result = get_classifier().classify(message, signals)
+
+    signals = detect_signals(
+        message
+    )
+
+    classification_result = (
+        get_classifier().classify(
+            message,
+            signals
+        )
+    )
+
 
     # ------------------------------------------------------------
     # 6. Impersonation detection
     # ------------------------------------------------------------
-    impersonation = detect_impersonation(message, sender_classification, signals)
+
+    impersonation = detect_impersonation(
+        message,
+        sender_classification,
+        signals
+    )
+
 
     risk_signals = {
-        "financial_request": signals["financial_request"],
-        "credential_request": signals["credential_request"],
-        "urgency": signals["urgency"],
-        "threat": signals["threat"],
-        "impersonation": impersonation["detected"],
-        "suspicious_link": signals["suspicious_link"],
-        "secrecy_request": signals["secrecy_request"],
+
+        "financial_request":
+            signals["financial_request"],
+
+        "credential_request":
+            signals["credential_request"],
+
+        "urgency":
+            signals["urgency"],
+
+        "threat":
+            signals["threat"],
+
+        "impersonation":
+            impersonation["detected"],
+
+        "suspicious_link":
+            signals["suspicious_link"],
+
+        "secrecy_request":
+            signals["secrecy_request"],
+
     }
 
-    # ------------------------------------------------------------
-    # 7. MongoDB Atlas sender reputation (best-effort, never raises)
-    # ------------------------------------------------------------
-    is_suspicious_msg = classification_result["classification"] != "NORMAL"
-    is_spam_msg = classification_result["classification"] in ("SPAM", "SCAM")
 
-    sender_doc = contact_reputation.record_sender_activity(
-        normalized_sender=mongo_sender_key,
-        sender_type=sender_classification["sender_type"],
-        is_suspicious=is_suspicious_msg,
-        is_spam=is_spam_msg,
+    # ------------------------------------------------------------
+    # 7. MongoDB Atlas sender reputation
+    # ------------------------------------------------------------
+
+    is_suspicious_msg = (
+        classification_result["classification"]
+        != "NORMAL"
     )
-    reputation_score = sender_doc.get("reputation_score", 50)
-    reputation_status_label = contact_reputation.reputation_status(reputation_score)
+
+    is_spam_msg = (
+        classification_result["classification"]
+        in ("SPAM", "SCAM")
+    )
+
+
+    sender_doc = (
+        contact_reputation.record_sender_activity(
+
+            normalized_sender=mongo_sender_key,
+
+            sender_type=(
+                sender_classification[
+                    "sender_type"
+                ]
+            ),
+
+            is_suspicious=is_suspicious_msg,
+
+            is_spam=is_spam_msg,
+
+        )
+    )
+
+
+    reputation_score = sender_doc.get(
+        "reputation_score",
+        50
+    )
+
+    reputation_status_label = (
+        contact_reputation.reputation_status(
+            reputation_score
+        )
+    )
+
 
     # ------------------------------------------------------------
     # 8. Trust score
     # ------------------------------------------------------------
+
     trust = calculate_trust_score(
+
         is_saved_contact=is_saved_contact,
+
         burst_detected=False,
+
         repeated_content=False,
-        sender_type=sender_classification["sender_type"],
+
+        sender_type=(
+            sender_classification[
+                "sender_type"
+            ]
+        ),
+
         sender_reputation_score=reputation_score,
+
         risk_signals=risk_signals,
-        impersonation_risk=impersonation["risk"],
-        spam_probability=classification_result["spam_probability"],
-        scam_probability=classification_result["scam_probability"],
+
+        impersonation_risk=(
+            impersonation["risk"]
+        ),
+
+        spam_probability=(
+            classification_result[
+                "spam_probability"
+            ]
+        ),
+
+        scam_probability=(
+            classification_result[
+                "scam_probability"
+            ]
+        ),
+
     )
 
-    # Best-effort message history write (never blocks the response)
+
+    # ------------------------------------------------------------
+    # 9. Best-effort message history write
+    # ------------------------------------------------------------
+
     contact_reputation.record_message_analysis(
+
         sender=mongo_sender_key,
+
         message=message,
-        classification=classification_result["classification"],
-        spam_probability=classification_result["spam_probability"],
-        scam_probability=classification_result["scam_probability"],
+
+        classification=(
+            classification_result[
+                "classification"
+            ]
+        ),
+
+        spam_probability=(
+            classification_result[
+                "spam_probability"
+            ]
+        ),
+
+        scam_probability=(
+            classification_result[
+                "scam_probability"
+            ]
+        ),
+
         risk_signals=risk_signals,
+
         trust_score=trust["score"],
+
         verdict=trust["verdict"],
+
     )
 
+
     # ------------------------------------------------------------
-    # Combined, de-duplicated human-readable reasons
+    # 10. Combined human-readable reasons
     # ------------------------------------------------------------
+
     reasons: List[str] = []
+
+
     reasons.append(
-        "Sender is saved in contacts." if is_saved_contact
-        else "Sender is not in your saved contacts."
+
+        "Sender is saved in contacts."
+        if is_saved_contact
+        else
+        "Sender is not in your saved contacts."
+
     )
-    reasons.extend(signals["reasons"])
+
+
+    reasons.extend(
+        signals["reasons"]
+    )
+
+
     if impersonation["detected"]:
-        reasons.append(impersonation["reason"])
-    if not any(risk_signals.values()):
-        reasons.append("No significant scam indicators were detected.")
+
+        reasons.append(
+            impersonation["reason"]
+        )
+
+
+    if not any(
+        risk_signals.values()
+    ):
+
+        reasons.append(
+            "No significant scam indicators were detected."
+        )
+
+
     reasons.append(
-        f"Sender has a {reputation_status_label.replace('_', ' ').lower()} message history."
+
+        "Sender has a "
+        + reputation_status_label.replace(
+            "_",
+            " "
+        ).lower()
+        + " message history."
+
     )
-    reasons = _dedupe_preserve_order(reasons)
 
-    legacy_level = _map_verdict_to_legacy_level(trust["verdict"])
-    confidence = _estimate_confidence(sender_doc, signals, {}, {})
 
-    explanation = generate_contact_explanation(legacy_level, reasons, contact_name)
+    reasons = _dedupe_preserve_order(
+        reasons
+    )
+
+
+    # ------------------------------------------------------------
+    # 11. Legacy level + confidence
+    # ------------------------------------------------------------
+
+    legacy_level = (
+        _map_verdict_to_legacy_level(
+            trust["verdict"]
+        )
+    )
+
+
+    confidence = _estimate_confidence(
+
+        sender_doc,
+
+        signals,
+
+        {},
+
+        {},
+
+    )
+
+
+    explanation = (
+        generate_contact_explanation(
+
+            legacy_level,
+
+            reasons,
+
+            contact_name,
+
+        )
+    )
+
+
+    # ------------------------------------------------------------
+    # 12. FINAL RESPONSE
+    # ------------------------------------------------------------
 
     return {
+
         # ------------------------------------------------------
         # Backward-compatible top-level fields
-        # (relied on by main.py / ContactAgentScreen.js as-is)
         # ------------------------------------------------------
-        "is_saved_contact": is_saved_contact,
-        "contact_name": contact_name,
 
-        "level": legacy_level,
-        "score": trust["score"],
-        "confidence": confidence,
-        "reasons": reasons,
+        "is_saved_contact":
+            is_saved_contact,
 
-        "short_explanation": explanation,
+        "contact_name":
+            contact_name,
+
+        "level":
+            legacy_level,
+
+        "score":
+            trust["score"],
+
+        "confidence":
+            confidence,
+
+        "reasons":
+            reasons,
+
+        "short_explanation":
+            explanation,
+
 
         "signals": {
-            "is_saved_contact": is_saved_contact,
-            # Derived from the persisted Mongo count for this sender, not
-            # the in-process _STORE history: that store is ephemeral
-            # (resets on every restart / isn't shared across workers) and
-            # keyed slightly differently, so it was reporting
-            # "first contact" for senders Mongo already had a long
-            # history for. total_messages includes the message just
-            # recorded, so ==1 means this is genuinely the first one
-            # we've ever seen from them. When Mongo is unavailable, fall
-            # back to the in-memory count as a best-effort signal.
+
+            "is_saved_contact":
+                is_saved_contact,
+
             "is_first_contact": (
-                sender_doc.get("total_messages", 1) <= 1
-                if sender_doc.get("available")
+
+                sender_doc.get(
+                    "total_messages",
+                    1
+                ) <= 1
+
+                if sender_doc.get(
+                    "available"
+                )
+
                 else len(history) <= 1
+
             ),
-            "sender_type": sender_classification.get("sender_type"),
-            "sender_reputation": reputation_status_label,
+
+            "sender_type":
+                sender_classification.get(
+                    "sender_type"
+                ),
+
+            "sender_reputation":
+                reputation_status_label,
+
         },
+
 
         # ------------------------------------------------------
         # New structured response
         # ------------------------------------------------------
+
         "contact": {
-            "is_saved_contact": is_saved_contact,
-            "contact_name": contact_name,
+
+            "is_saved_contact":
+                is_saved_contact,
+
+            "contact_name":
+                contact_name,
+
         },
+
+
         "sender": {
-            "normalized": sender_classification.get("normalized"),
-            "type": sender_classification.get("sender_type"),
-            "confidence": sender_classification.get("confidence"),
+
+            "normalized":
+                sender_classification.get(
+                    "normalized"
+                ),
+
+            "type":
+                sender_classification.get(
+                    "sender_type"
+                ),
+
+            "confidence":
+                sender_classification.get(
+                    "confidence"
+                ),
+
         },
+
+
         "sender_reputation": {
-            "status": reputation_status_label,
-            "spam_score": (100 - reputation_score) if sender_doc.get("available") else None,
-            "total_messages": sender_doc.get("total_messages", 0),
-            "suspicious_messages": sender_doc.get("suspicious_messages", 0),
-            "spam_messages": sender_doc.get("spam_messages", 0),
-            "mongo_available": sender_doc.get("available", False),
+
+            "status":
+                reputation_status_label,
+
+            "spam_score": (
+
+                100 - reputation_score
+
+                if sender_doc.get(
+                    "available"
+                )
+
+                else None
+
+            ),
+
+            "total_messages":
+                sender_doc.get(
+                    "total_messages",
+                    0
+                ),
+
+            "suspicious_messages":
+                sender_doc.get(
+                    "suspicious_messages",
+                    0
+                ),
+
+            "spam_messages":
+                sender_doc.get(
+                    "spam_messages",
+                    0
+                ),
+
+            "mongo_available":
+                sender_doc.get(
+                    "available",
+                    False
+                ),
+
         },
+
+
         "message_analysis": {
-            "classification": classification_result["classification"],
-            "spam_probability": classification_result["spam_probability"],
-            "scam_probability": classification_result["scam_probability"],
-            "model_used": classification_result["model_used"],
+
+            "classification":
+                classification_result[
+                    "classification"
+                ],
+
+            "spam_probability":
+                classification_result[
+                    "spam_probability"
+                ],
+
+            "scam_probability":
+                classification_result[
+                    "scam_probability"
+                ],
+
+            "model_used":
+                classification_result[
+                    "model_used"
+                ],
+
         },
-        "risk_signals": risk_signals,
-        "impersonation": impersonation,
+
+
+        "risk_signals":
+            risk_signals,
+
+
+        "impersonation":
+            impersonation,
+
+
         "trust": {
-            "score": trust["score"],
-            "verdict": trust["verdict"],
-            "components": trust["components"],
+
+            "score":
+                trust["score"],
+
+            "verdict":
+                trust["verdict"],
+
+            "components":
+                trust["components"],
+
         },
+
     }

@@ -12,9 +12,18 @@ import * as Contacts from "expo-contacts/legacy";
 import SmsAndroid from "react-native-get-sms-android";
 import { COLORS } from "../constants/colors";
 
+const normalizePhone = (value) => {
+  if (!value) return "";
+  return value
+    .replace(/[^\d+]/g, "")
+    .replace(/^\+/, "")
+    .replace(/\s+/g, "");
+};
+
 export default function DeviceDataScreen({ onContinue }) {
   const [messages, setMessages] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [contactLookup, setContactLookup] = useState({});
   const [loadingSms, setLoadingSms] = useState(true);
   const [loadingContacts, setLoadingContacts] = useState(true);
 
@@ -37,7 +46,21 @@ export default function DeviceDataScreen({ onContinue }) {
       const { data } = await Contacts.getContactsAsync({
         fields: [Contacts.Fields.PhoneNumbers],
       });
+
+      const lookup = {};
+
+      data.forEach((contact) => {
+        const numbers = contact.phoneNumbers ?? [];
+        numbers.forEach((phone) => {
+          const normalized = normalizePhone(phone.number);
+          if (normalized) {
+            lookup[normalized] = contact.name || "Saved contact";
+          }
+        });
+      });
+
       setContacts(data);
+      setContactLookup(lookup);
       setLoadingContacts(false);
     })();
   }, []);
@@ -47,8 +70,7 @@ export default function DeviceDataScreen({ onContinue }) {
       <View style={styles.container}>
         <Text style={styles.pageTitle}>Device data</Text>
         <Text style={styles.pageSubtitle}>
-          Read directly from this device. Nothing shown here leaves your
-          phone.
+          Read directly from this device. Nothing shown here leaves your phone.
         </Text>
 
         <Text style={styles.header}>Inbox ({messages.length})</Text>
@@ -57,15 +79,24 @@ export default function DeviceDataScreen({ onContinue }) {
         ) : (
           <FlatList
             data={messages}
-            keyExtractor={(item, index) => item._id?.toString() ?? String(index)}
-            renderItem={({ item }) => (
-              <View style={styles.row}>
-                <Text style={styles.rowTitle}>{item.address}</Text>
-                <Text style={styles.rowBody} numberOfLines={2}>
-                  {item.body}
-                </Text>
-              </View>
-            )}
+            keyExtractor={(item, index) =>
+              item._id?.toString() ?? String(index)
+            }
+            renderItem={({ item }) => {
+              const normalizedAddress = normalizePhone(item.address);
+              const savedContactName = contactLookup[normalizedAddress];
+
+              return (
+                <View style={styles.row}>
+                  <Text style={styles.rowTitle}>
+                    {savedContactName || item.address}
+                  </Text>
+                  <Text style={styles.rowBody} numberOfLines={2}>
+                    {savedContactName ? item.address : item.body}
+                  </Text>
+                </View>
+              );
+            }}
             ListEmptyComponent={
               <Text style={styles.emptyText}>No messages found.</Text>
             }
