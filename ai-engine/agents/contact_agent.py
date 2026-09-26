@@ -749,6 +749,15 @@ def analyze_contact(
         "threat":
             signals["threat"],
 
+        "personal_info_request":
+            signals["personal_info_request"],
+
+        "prize_scam":
+            signals["prize_scam"],
+
+        "delivery_payment_scam":
+            signals["delivery_payment_scam"],
+
         "impersonation":
             impersonation["detected"],
 

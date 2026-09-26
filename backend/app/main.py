@@ -9,6 +9,10 @@ from pydantic import BaseModel
 
 from dotenv import load_dotenv
 
+from app.services.embedding_service import load_embedding_model
+from app.services.semantic_spam_service import semantic_precheck
+from app.database.mongodb import close_mongo_client, ensure_indexes
+
 load_dotenv()
 
 
@@ -297,6 +301,32 @@ def analyze_sms(
     print("Screen Unlocked:", request.screen_unlocked)
     print("Saved Contact:", request.is_saved_contact)
     print("Contact Name:", request.contact_name)
+
+    # ========================================================
+    # SEMANTIC SPAM GATE
+    # ========================================================
+
+    semantic_gate = semantic_precheck(request.body, request.sender)
+    if not semantic_gate.get("should_continue", True):
+        response = {
+            "success": True,
+            "sms": {
+                "sender": request.sender,
+                "body": request.body,
+                "timestamp": request.timestamp,
+            },
+            "analysis": {
+                "classification": semantic_gate.get("classification", "SPAM"),
+                "risk_score": semantic_gate.get("risk_score", 100),
+                "processing_path": semantic_gate.get("processing_path", "SEMANTIC_FAST_PATH"),
+                "matched": semantic_gate.get("matched", True),
+                "similarity": semantic_gate.get("similarity", 1.0),
+                "pattern_status": semantic_gate.get("pattern_status", "CONFIRMED_SPAM"),
+            },
+            "routes": ["SEMANTIC_FAST_PATH"],
+            "agents": [],
+        }
+        return response
 
     # ========================================================
     # CHECK LANGGRAPH
@@ -712,3 +742,21 @@ def analyze_contact_endpoint(
 
 
     return result
+
+
+# ============================================================
+# APP STARTUP
+# ============================================================
+
+@app.on_event("startup")
+def startup_event():
+    load_embedding_model()
+    try:
+        ensure_indexes()
+    except Exception:
+        pass
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    close_mongo_client()

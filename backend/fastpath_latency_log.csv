@@ -1,0 +1,2 @@
+time,n,sender,fastpath_total_ms,generate_embedding_ms,db_lookup_similarity_ms,pattern_status_lookup_ms,persist_message_ms
+2026-09-25T14:32:00,1,+917559185891,2133.14,480.29,1065.27,166.17,409.14

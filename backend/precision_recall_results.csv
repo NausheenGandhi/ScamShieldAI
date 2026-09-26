@@ -1,0 +1,22 @@
+category,is_scam,sender,body,score,status,predicted_scam_at_current_threshold,correct
+otp_sharing_request,True,+919876543210,Your OTP is 482913. Please share it with our bank representative to complete verification.,53.0,MEDIUM,True,True
+otp_threat,True,+919876543211,URGENT! Your account will be permanently blocked. Give the OTP 592014 to our representative immediately.,76.0,HIGH,True,True
+otp_customer_care_scam,True,+919876543212,Customer care here regarding your refund. Please provide OTP 738291 to process it.,57.0,MEDIUM,True,True
+normal_otp,False,HDFCBK,Your OTP is 482913. Valid for 10 minutes. Do not share this OTP with anyone.,43.0,MEDIUM,True,False
+normal_otp,False,AMAZON,Your Amazon verification code is 118273. Never share this code with anyone.,43.0,MEDIUM,True,False
+phishing_bank,True,+919876543213,Alert - HDFC Bank: Your account will be suspended due to KYC issue. Verify now: http://hdfc-kyc-verify.example/login,100,CRITICAL,True,True
+phishing_delivery,True,+919876543214,Your parcel is held at customs. Pay the pending fee to release delivery: http://customs-fee-pay.example/,100,CRITICAL,True,True
+phishing_prize,True,+919876543215,"Congratulations! You've won a lucky draw prize of Rs 5,00,000. Claim now: http://bit.ly/luckyclaim99",100,CRITICAL,True,True
+legit_delivery,False,AMZN,Your package is out for delivery and should arrive today. Track it: https://www.amazon.in/track/1234567890,28.0,LOW,False,True
+legit_appointment,False,+919876500002,Your appointment is confirmed for tomorrow at 10am.,24.0,LOW,False,True
+impersonation_bank,True,+919876543216,SBI: Your account will be blocked. Send your card number and CVV immediately to avoid penalty.,72.0,HIGH,True,True
+financial_scam,True,+919876543217,"URGENT! Send Rs 20,000 to this UPI ID immediately or face legal action.",61.0,MEDIUM,True,True
+prize_scam_secrecy,True,+919876543218,"You have won a prize. Don't tell anyone about this, just transfer the small processing fee now.",41.0,MEDIUM,True,True
+emergency_money_scam,True,+919876543219,"I've had an accident, send 20000 rupees urgently, don't call me right now.",65.0,HIGH,True,True
+legit_saved_contact,False,+919876500001,"Hey, are we still meeting at 6?",14.0,SAFE,False,True
+legit_reminder,False,+919876500003,"Reminder: your electricity bill of Rs 1,240 is due on the 5th.",41.0,MEDIUM,True,False
+legit_casual,False,+919876500004,Good morning! Hope you have a great day.,14.0,SAFE,False,True
+spam_loan,True,+919876543220,Get instant personal loan up to 5 lakhs with zero documentation! Apply now: http://bit.ly/instaloan,100,CRITICAL,True,True
+spam_lottery,True,+919876543221,CONGRATS! Your number has won our lucky draw. Claim your gift now: http://bit.ly/luckydraw2,96.0,CRITICAL,True,True
+legit_promo,False,MYNTRA,Flat 40% off on your favorite brands this weekend only. Shop now on the Myntra app.,22.0,LOW,False,True
+legit_bank_notice,False,HDFCBK,"Your HDFC Bank account balance as of today is Rs 12,500.",41.0,MEDIUM,True,False
