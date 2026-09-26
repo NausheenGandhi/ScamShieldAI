@@ -27,16 +27,32 @@ logger = logging.getLogger("scamshield.contact.risk_analyzer")
 # ============================================================
 
 _FINANCIAL_PATTERNS = [
-    r"\bsend\s+(?:me\s+)?(?:rs\.?|inr|₹|\$)?\s?\d",
-    r"\btransfer\b.{0,20}\b(money|amount|fund)",
+    # Generic money/transfer requests with amounts (catches "transfer 5000rs", "send 5000", etc.)
+    # Handles: send/transfer/give/pay/wire/lend + currency or bare amount
+    r"\b(?:send|transfer|give|pay|wire|lend)\b.{0,30}(?:₹|rs\.?|inr|rupee|buck|cash|upi)\s*\d",
+    
+    # Bare large amounts (3-4+ digit numbers suggesting financial transactions)
+    # Only if preceded by action verbs
+    r"\b(?:send|transfer|give|pay|wire|lend|need|owe|borrow)\b\s+(?:me\s+)?(\d{3,})",
+    
+    # Currency amounts anywhere in message (₹100, 100rs, 100 inr, $100, 100 rupees, etc.)
+    r"(?:₹|rs\.?|inr|rupee)\s*\d+",
+    r"\d+\s*(?:₹|rs\.?|inr|rupee)",
+    
+    # Standalone transaction verbs without currency (still risky with urgency context)
+    r"\b(?:send|transfer|give|lend)\s+(?:me\s+)?(?:money|amount|cash|fund|payment)\b",
+    
+    # Specific financial contexts
     r"\bupi\b",
     r"\bbank\s+account\b",
-    r"\b(pay|payment)\s+(?:now|immediately|urgently)\b",
+    r"\b(pay|payment)\s+(?:now|immediately|urgently|asap|due)\b",
     r"\bdonat(e|ion)\b",
     r"\bloan\b",
-    r"\bwire\s+transfer\b",
-    r"₹\s?\d",
-    r"\brs\.?\s?\d",
+    r"\bwire\s+(?:transfer|money|cash)\b",
+    
+    # Social engineering: "friend/family" + money request (common Indian scam vector)
+    r"\bfriend\b.{0,50}(?:send|transfer|need|give|lend|owe|borrow)\b",
+    r"\b(?:brother|sister|cousin|uncle|aunty|bro|bhai|mom|dad|papa|mummy)\b.{0,50}(?:send|transfer|need|give|lend)\b",
 ]
 
 _CREDENTIAL_PATTERNS = [

@@ -308,6 +308,13 @@ def analyze_sms(
 
     semantic_gate = semantic_precheck(request.body, request.sender)
     if not semantic_gate.get("should_continue", True):
+        report_count = semantic_gate.get("report_count", 0)
+        reason = semantic_gate.get(
+            "reason",
+            "This message matches a pattern already confirmed as spam.",
+        )
+        risk_score = semantic_gate.get("risk_score", 100)
+
         response = {
             "success": True,
             "sms": {
@@ -316,12 +323,18 @@ def analyze_sms(
                 "timestamp": request.timestamp,
             },
             "analysis": {
+                "status": "SPAM",
                 "classification": semantic_gate.get("classification", "SPAM"),
-                "risk_score": semantic_gate.get("risk_score", 100),
+                "risk_score": risk_score,
+                "score": risk_score,
                 "processing_path": semantic_gate.get("processing_path", "SEMANTIC_FAST_PATH"),
                 "matched": semantic_gate.get("matched", True),
                 "similarity": semantic_gate.get("similarity", 1.0),
                 "pattern_status": semantic_gate.get("pattern_status", "CONFIRMED_SPAM"),
+                "pattern_id": semantic_gate.get("pattern_id"),
+                "report_count": report_count,
+                "reason": reason,
+                "reasons": [reason],
             },
             "routes": ["SEMANTIC_FAST_PATH"],
             "agents": [],

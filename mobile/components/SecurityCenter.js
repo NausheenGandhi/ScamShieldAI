@@ -34,6 +34,11 @@ const RISK_STYLES = {
     label: "SAFE",
   },
 
+  SPAM: {
+    color: "#FF5C5C",
+    label: "CONFIRMED SPAM",
+  },
+
   unknown: {
     color: COLORS.muted,
     label: "NO ANALYSIS",
@@ -76,6 +81,8 @@ export default function SecurityCenter({
       : null;
 
   const riskStyle = RISK_STYLES[status] || RISK_STYLES.unknown;
+
+  const isFastPathSpam = analysis?.processing_path === "SEMANTIC_FAST_PATH";
 
   const routes = graphResponse?.routes || [];
 
@@ -304,7 +311,9 @@ export default function SecurityCenter({
               <View>
                 <Text style={styles.analysisEyebrow}>LATEST SMS ANALYSIS</Text>
 
-                <Text style={styles.analysisTitle}>LangGraph Result</Text>
+                <Text style={styles.analysisTitle}>
+                  {isFastPathSpam ? "Instant Spam Match" : "LangGraph Result"}
+                </Text>
               </View>
 
               <View
@@ -391,41 +400,71 @@ export default function SecurityCenter({
             </View>
 
             {/* ==================================================
+                CONFIRMED SPAM BANNER (fast-path only)
+            ================================================== */}
+
+            {isFastPathSpam && (
+              <View style={styles.spamBanner}>
+                <Ionicons name="warning" size={20} color="#FF5C5C" />
+
+                <View style={styles.spamBannerContent}>
+                  <Text style={styles.spamBannerTitle}>
+                    Confirmed spam pattern
+                  </Text>
+
+                  <Text style={styles.spamBannerText}>
+                    {analysis?.reason ||
+                      "This message matches a pattern already reported as spam."}
+                  </Text>
+
+                  {typeof analysis?.report_count === "number" && (
+                    <Text style={styles.spamBannerCount}>
+                      Reported as spam {analysis.report_count} time
+                      {analysis.report_count === 1 ? "" : "s"}.
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* ==================================================
                 AGENTS USED
             ================================================== */}
 
-            <View style={styles.analysisSection}>
-              <Text style={styles.sectionTitle}>AGENTS USED</Text>
+            {!isFastPathSpam && (
+              <View style={styles.analysisSection}>
+                <Text style={styles.sectionTitle}>AGENTS USED</Text>
 
-              <View style={styles.agentStatusList}>
-                {/* OTP */}
+                <View style={styles.agentStatusList}>
+                  {/* OTP */}
 
-                <AgentStatusRow
-                  icon="key-outline"
-                  title="OTP Agent"
-                  active={otpActive}
-                  result={otpResult}
-                />
+                  <AgentStatusRow
+                    icon="key-outline"
+                    title="OTP Agent"
+                    active={otpActive}
+                    result={otpResult}
+                  />
 
-                {/* URL */}
+                  {/* URL */}
 
-                <AgentStatusRow
-                  icon="link-outline"
-                  title="URL Agent"
-                  active={urlActive}
-                  result={urlResult}
-                />
+                  <AgentStatusRow
+                    icon="link-outline"
+                    title="URL Agent"
+                    active={urlActive}
+                    result={urlResult}
+                  />
 
-                {/* CONTACT */}
+                  {/* CONTACT */}
 
-                <AgentStatusRow
-                  icon="people-outline"
-                  title="Contact Agent"
-                  active={contactActive}
-                  result={contactResult}
-                />
+                  <AgentStatusRow
+                    icon="people-outline"
+                    title="Contact Agent"
+                    active={contactActive}
+                    result={contactResult}
+                  />
+                </View>
               </View>
-            </View>
+            )}
 
             {/* ==================================================
                 OVERALL REASONS
@@ -453,65 +492,70 @@ export default function SecurityCenter({
                 AGENT-SPECIFIC ANALYSIS
             ================================================== */}
 
-            {(otpReasons.length > 0 ||
-              urlReasons.length > 0 ||
-              contactReasons.length > 0) && (
-              <View style={styles.analysisSection}>
-                <Text style={styles.sectionTitle}>AGENT ANALYSIS</Text>
+            {!isFastPathSpam &&
+              (otpReasons.length > 0 ||
+                urlReasons.length > 0 ||
+                contactReasons.length > 0) && (
+                <View style={styles.analysisSection}>
+                  <Text style={styles.sectionTitle}>AGENT ANALYSIS</Text>
 
-                {/* OTP ANALYSIS */}
+                  {/* OTP ANALYSIS */}
 
-                {otpReasons.length > 0 && (
-                  <AgentReasonBlock
-                    title="OTP Agent"
-                    icon="key-outline"
-                    reasons={otpReasons}
-                  />
-                )}
+                  {otpReasons.length > 0 && (
+                    <AgentReasonBlock
+                      title="OTP Agent"
+                      icon="key-outline"
+                      reasons={otpReasons}
+                    />
+                  )}
 
-                {/* URL ANALYSIS */}
+                  {/* URL ANALYSIS */}
 
-                {urlReasons.length > 0 && (
-                  <AgentReasonBlock
-                    title="URL Agent"
-                    icon="link-outline"
-                    reasons={urlReasons}
-                  />
-                )}
+                  {urlReasons.length > 0 && (
+                    <AgentReasonBlock
+                      title="URL Agent"
+                      icon="link-outline"
+                      reasons={urlReasons}
+                    />
+                  )}
 
-                {/* CONTACT ANALYSIS */}
+                  {/* CONTACT ANALYSIS */}
 
-                {contactReasons.length > 0 && (
-                  <AgentReasonBlock
-                    title="Contact Agent"
-                    icon="people-outline"
-                    reasons={contactReasons}
-                  />
-                )}
-              </View>
-            )}
+                  {contactReasons.length > 0 && (
+                    <AgentReasonBlock
+                      title="Contact Agent"
+                      icon="people-outline"
+                      reasons={contactReasons}
+                    />
+                  )}
+                </View>
+              )}
 
             {/* ==================================================
                 AGENT EXPLANATIONS
             ================================================== */}
 
-            <AgentExplanation
-              title="OTP Agent"
-              result={otpResult}
-              active={otpActive}
-            />
+            {!isFastPathSpam && (
+              <>
+                <AgentExplanation
+                  title="OTP Agent"
+                  result={otpResult}
+                  active={otpActive}
+                />
 
-            <AgentExplanation
-              title="URL Agent"
-              result={urlResult}
-              active={urlActive}
-            />
+                <AgentExplanation
+                  title="URL Agent"
+                  result={urlResult}
+                  active={urlActive}
+                />
 
-            <AgentExplanation
-              title="Contact Agent"
-              result={contactResult}
-              active={contactActive}
-            />
+                <AgentExplanation
+                  title="Contact Agent"
+                  result={contactResult}
+                  active={contactActive}
+                />
+              </>
+            )}
 
             {/* ==================================================
                 SMS INFORMATION
@@ -954,6 +998,44 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // ========================================================
+  // CONFIRMED SPAM BANNER
+  // ========================================================
+
+  spamBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#351F24",
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 18,
+  },
+
+  spamBannerContent: {
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  spamBannerTitle: {
+    color: "#FF5C5C",
+    fontWeight: "800",
+    fontSize: 14,
+    marginBottom: 4,
+  },
+
+  spamBannerText: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+
+  spamBannerCount: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   // ========================================================

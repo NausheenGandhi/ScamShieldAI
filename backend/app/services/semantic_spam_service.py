@@ -11,7 +11,7 @@ from app.services.embedding_service import generate_embedding
 logger = logging.getLogger("scamshield.semantic")
 
 # Lowered from 0.85: MiniLM scores paraphrased scam SMS well below 0.85.
-DEFAULT_SIMILARITY_THRESHOLD = 0.53
+DEFAULT_SIMILARITY_THRESHOLD = 0.70
 # Token-overlap rescue window just below the similarity threshold.
 FALLBACK_MARGIN = 0.05
 FALLBACK_MIN_OVERLAP = 3
@@ -147,13 +147,36 @@ def _find_best_pattern(message: str, embedding: list) -> Optional[Dict[str, Any]
     return best_doc
 
 
+def _get_pattern_state_safe(pattern_id: str) -> Dict[str, Any]:
+    """
+    Wraps get_pattern_state() so a MongoDB hiccup degrades to a safe,
+    conservative default (count=1, PENDING) instead of raising and
+    breaking the fast-path response.
+    """
+    try:
+        return get_pattern_state(str(pattern_id))
+    except Exception as exc:
+        logger.warning("Could not read pattern state for %s: %s", pattern_id, exc)
+        return {"pattern_id": pattern_id, "message_count": 1, "status": "PENDING"}
+
+
 def _get_pattern_status(pattern_id: str) -> str:
     """Status is derived from the append-only event log, not stored on the pattern."""
-    try:
-        return get_pattern_state(str(pattern_id)).get("status", "PENDING")
-    except Exception as exc:
-        logger.warning("Could not read pattern status for %s: %s", pattern_id, exc)
-        return "PENDING"
+    return _get_pattern_state_safe(pattern_id).get("status", "PENDING")
+
+
+def _build_spam_reason(report_count: int) -> str:
+    """
+    Plain-language explanation for the UI: why this message was flagged
+    without going through the agent pipeline, plus the crowd-sourced
+    report count so the user has something concrete to weigh.
+    """
+    times_word = "time" if report_count == 1 else "times"
+    return (
+        f"This message matches a pattern that has already been confirmed as "
+        f"spam. It has been seen {report_count} {times_word} across "
+        f"messages sent to users of this app."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -229,11 +252,14 @@ def semantic_precheck(message: str, sender: str = "unknown") -> Dict[str, Any]:
             "similarity": similarity,
         }
 
-    # Current status, derived from the pattern's event log.
-    pattern_status = _get_pattern_status(pattern_id)
+    # Current status + count, derived from the pattern's event log.
+    pattern_state = _get_pattern_state_safe(pattern_id)
+    pattern_status = pattern_state.get("status", "PENDING")
+    report_count = pattern_state.get("message_count", 1)
 
     # ---- Already confirmed spam: fast path (exact-threshold matches only) --
     if is_match and pattern_status == "CONFIRMED_SPAM":
+        reason = _build_spam_reason(report_count)
         _persist_message({
             "message_text": clean_message,
             "semantic_group_id": pattern_id,
@@ -251,11 +277,15 @@ def semantic_precheck(message: str, sender: str = "unknown") -> Dict[str, Any]:
             "classification": "SPAM",
             "risk_score": 100,
             "pattern_status": "CONFIRMED_SPAM",
+            "pattern_id": pattern_id,
+            "report_count": report_count,
+            "reason": reason,
         }
 
     # ---- Match (normal or fallback): record the match and use the fresh status ----
     inc = _increment_pattern(pattern_id)
     new_status = inc.get("status", pattern_status)
+    new_count = inc.get("message_count", report_count)
 
     _persist_message({
         "message_text": clean_message,
@@ -277,10 +307,13 @@ def semantic_precheck(message: str, sender: str = "unknown") -> Dict[str, Any]:
         "pattern_status": new_status,
         "matched": True,
         "similarity": similarity,
+        "pattern_id": pattern_id,
+        "report_count": new_count,
     }
     if new_status == "CONFIRMED_SPAM":
         result["classification"] = "SPAM"
         result["risk_score"] = 100
+        result["reason"] = _build_spam_reason(new_count)
     elif is_fallback_match:
         result["classification"] = "PENDING"
     return result

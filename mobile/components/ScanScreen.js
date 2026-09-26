@@ -45,6 +45,11 @@ const RISK_STYLES = {
     label: "SAFE",
   },
 
+  SPAM: {
+    color: "#FF5C5C",
+    label: "CONFIRMED SPAM",
+  },
+
   unknown: {
     color: COLORS.muted,
     label: "UNKNOWN",
@@ -189,6 +194,8 @@ export default function ScanScreen({ onBack, onAnalysisComplete }) {
   const agentResults = analysis?.agent_results || {};
 
   const reasons = analysis?.reasons || [];
+
+  const isFastPathSpam = analysis?.processing_path === "SEMANTIC_FAST_PATH";
 
   // ==========================================================
   // RENDER
@@ -345,68 +352,102 @@ export default function ScanScreen({ onBack, onAnalysisComplete }) {
             </View>
 
             <Text style={styles.scoreDescription}>
-              Final risk score calculated by the LangGraph Coordinator.
+              {isFastPathSpam
+                ? "Instantly matched against known spam patterns — the full agent pipeline was skipped."
+                : "Final risk score calculated by the LangGraph Coordinator."}
             </Text>
+
+            {/* ================================================
+                CONFIRMED SPAM BANNER (fast-path only)
+            ================================================= */}
+
+            {isFastPathSpam && (
+              <View style={styles.spamBanner}>
+                <Ionicons name="warning" size={20} color="#FF5C5C" />
+
+                <View style={styles.spamBannerContent}>
+                  <Text style={styles.spamBannerTitle}>
+                    Confirmed spam pattern
+                  </Text>
+
+                  <Text style={styles.spamBannerText}>
+                    {analysis?.reason ||
+                      "This message matches a pattern already reported as spam."}
+                  </Text>
+
+                  {typeof analysis?.report_count === "number" && (
+                    <Text style={styles.spamBannerCount}>
+                      Reported as spam {analysis.report_count} time
+                      {analysis.report_count === 1 ? "" : "s"}.
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
 
             {/* ================================================
                 ROUTES
             ================================================= */}
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>AGENTS USED</Text>
+            {!isFastPathSpam && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>AGENTS USED</Text>
 
-              <View style={styles.routeRow}>
-                {routes.includes("otp") && (
-                  <AgentBadge icon="key-outline" label="OTP" />
-                )}
+                <View style={styles.routeRow}>
+                  {routes.includes("otp") && (
+                    <AgentBadge icon="key-outline" label="OTP" />
+                  )}
 
-                {routes.includes("url") && (
-                  <AgentBadge icon="link-outline" label="URL" />
-                )}
+                  {routes.includes("url") && (
+                    <AgentBadge icon="link-outline" label="URL" />
+                  )}
 
-                {routes.includes("content") && (
-                  <AgentBadge icon="document-text-outline" label="CONTENT" />
-                )}
+                  {routes.includes("content") && (
+                    <AgentBadge icon="document-text-outline" label="CONTENT" />
+                  )}
+                </View>
               </View>
-            </View>
+            )}
 
             {/* ================================================
                 AGENT RESULTS
             ================================================= */}
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>AGENT RESULTS</Text>
+            {!isFastPathSpam && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>AGENT RESULTS</Text>
 
-              {/* OTP AGENT */}
+                {/* OTP AGENT */}
 
-              {routes.includes("otp") && agentResults.otp && (
-                <AgentResultCard
-                  icon="key-outline"
-                  title="OTP Agent"
-                  result={agentResults.otp}
-                />
-              )}
+                {routes.includes("otp") && agentResults.otp && (
+                  <AgentResultCard
+                    icon="key-outline"
+                    title="OTP Agent"
+                    result={agentResults.otp}
+                  />
+                )}
 
-              {/* URL AGENT */}
+                {/* URL AGENT */}
 
-              {routes.includes("url") && agentResults.url && (
-                <AgentResultCard
-                  icon="link-outline"
-                  title="URL Agent"
-                  result={agentResults.url}
-                />
-              )}
+                {routes.includes("url") && agentResults.url && (
+                  <AgentResultCard
+                    icon="link-outline"
+                    title="URL Agent"
+                    result={agentResults.url}
+                  />
+                )}
 
-              {/* CONTENT AGENT */}
+                {/* CONTENT AGENT */}
 
-              {routes.includes("content") && agentResults.content && (
-                <AgentResultCard
-                  icon="document-text-outline"
-                  title="Content Agent"
-                  result={agentResults.content}
-                />
-              )}
-            </View>
+                {routes.includes("content") && agentResults.content && (
+                  <AgentResultCard
+                    icon="document-text-outline"
+                    title="Content Agent"
+                    result={agentResults.content}
+                  />
+                )}
+              </View>
+            )}
 
             {/* ================================================
                 WHY FLAGGED
@@ -458,6 +499,18 @@ export default function ScanScreen({ onBack, onAnalysisComplete }) {
                 <DetailRow label="Risk status" value={riskStatus} />
 
                 <DetailRow label="Risk score" value={`${riskScore}/100`} />
+
+                <DetailRow
+                  label="Processing path"
+                  value={analysis?.processing_path || "LANGGRAPH"}
+                />
+
+                {isFastPathSpam && (
+                  <DetailRow
+                    label="Report count"
+                    value={String(analysis?.report_count ?? "n/a")}
+                  />
+                )}
 
                 {result?.sms?.sender && (
                   <DetailRow label="Sender" value={result.sms.sender} />
@@ -727,6 +780,44 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 2,
+  },
+
+  // ========================================================
+  // CONFIRMED SPAM BANNER
+  // ========================================================
+
+  spamBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#351F24",
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 18,
+  },
+
+  spamBannerContent: {
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  spamBannerTitle: {
+    color: "#FF5C5C",
+    fontWeight: "800",
+    fontSize: 14,
+    marginBottom: 4,
+  },
+
+  spamBannerText: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+
+  spamBannerCount: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   // ========================================================
