@@ -1,22 +1,178 @@
-category,is_scam,sender,body,score,status,predicted_scam_at_current_threshold,correct
-otp_sharing_request,True,+919876543210,Your OTP is 482913. Please share it with our bank representative to complete verification.,53.0,MEDIUM,True,True
-otp_threat,True,+919876543211,URGENT! Your account will be permanently blocked. Give the OTP 592014 to our representative immediately.,76.0,HIGH,True,True
-otp_customer_care_scam,True,+919876543212,Customer care here regarding your refund. Please provide OTP 738291 to process it.,57.0,MEDIUM,True,True
-normal_otp,False,HDFCBK,Your OTP is 482913. Valid for 10 minutes. Do not share this OTP with anyone.,43.0,MEDIUM,True,False
-normal_otp,False,AMAZON,Your Amazon verification code is 118273. Never share this code with anyone.,43.0,MEDIUM,True,False
-phishing_bank,True,+919876543213,Alert - HDFC Bank: Your account will be suspended due to KYC issue. Verify now: http://hdfc-kyc-verify.example/login,100,CRITICAL,True,True
-phishing_delivery,True,+919876543214,Your parcel is held at customs. Pay the pending fee to release delivery: http://customs-fee-pay.example/,100,CRITICAL,True,True
-phishing_prize,True,+919876543215,"Congratulations! You've won a lucky draw prize of Rs 5,00,000. Claim now: http://bit.ly/luckyclaim99",100,CRITICAL,True,True
-legit_delivery,False,AMZN,Your package is out for delivery and should arrive today. Track it: https://www.amazon.in/track/1234567890,28.0,LOW,False,True
-legit_appointment,False,+919876500002,Your appointment is confirmed for tomorrow at 10am.,24.0,LOW,False,True
-impersonation_bank,True,+919876543216,SBI: Your account will be blocked. Send your card number and CVV immediately to avoid penalty.,72.0,HIGH,True,True
-financial_scam,True,+919876543217,"URGENT! Send Rs 20,000 to this UPI ID immediately or face legal action.",61.0,MEDIUM,True,True
-prize_scam_secrecy,True,+919876543218,"You have won a prize. Don't tell anyone about this, just transfer the small processing fee now.",41.0,MEDIUM,True,True
-emergency_money_scam,True,+919876543219,"I've had an accident, send 20000 rupees urgently, don't call me right now.",65.0,HIGH,True,True
-legit_saved_contact,False,+919876500001,"Hey, are we still meeting at 6?",14.0,SAFE,False,True
-legit_reminder,False,+919876500003,"Reminder: your electricity bill of Rs 1,240 is due on the 5th.",41.0,MEDIUM,True,False
-legit_casual,False,+919876500004,Good morning! Hope you have a great day.,14.0,SAFE,False,True
-spam_loan,True,+919876543220,Get instant personal loan up to 5 lakhs with zero documentation! Apply now: http://bit.ly/instaloan,100,CRITICAL,True,True
-spam_lottery,True,+919876543221,CONGRATS! Your number has won our lucky draw. Claim your gift now: http://bit.ly/luckydraw2,96.0,CRITICAL,True,True
-legit_promo,False,MYNTRA,Flat 40% off on your favorite brands this weekend only. Shop now on the Myntra app.,22.0,LOW,False,True
-legit_bank_notice,False,HDFCBK,"Your HDFC Bank account balance as of today is Rs 12,500.",41.0,MEDIUM,True,False
+run,group,category,is_scam,sender,body,score,status,predicted_scam_at_current_threshold,correct,latency_ms
+1,otp_scam,otp_sharing_request,True,@MOBILE,Your OTP is 482913. Please share it with our bank representative to complete verification.,53.0,MEDIUM,True,True,3500.8
+1,otp_scam,otp_threat,True,@MOBILE,URGENT! Your account will be permanently blocked. Give the OTP 592014 to our representative immediately.,76.0,HIGH,True,True,2826.5
+1,otp_scam,otp_customer_care,True,@MOBILE,Customer care here regarding your refund. Please provide OTP 738291 to process it.,54.0,MEDIUM,True,True,4938.0
+1,otp_scam,otp_kyc,True,@MOBILE,Your KYC is expiring today. Share the OTP 118820 you just received to avoid account freeze.,65.0,HIGH,True,True,7393.8
+1,otp_scam,otp_wrong_transfer,True,@MOBILE,"Sorry sir, I sent Rs 5000 to your number by mistake. Please send me the OTP 664201 so I can reverse it.",73.0,HIGH,True,True,2500.0
+1,otp_scam,otp_sim_swap,True,@MOBILE,"To upgrade your SIM to 5G, reply with the OTP 905512 sent to your number.",45.0,MEDIUM,True,True,9331.7
+1,otp_scam,otp_electricity,True,@MOBILE,Your electricity will be cut tonight. Call our officer and share OTP 337718 to update bill.,45.0,MEDIUM,True,True,9518.2
+1,otp_scam,otp_prize,True,@MOBILE,"Congratulations, you won a gift. Tell us the OTP 441907 to claim it now.",65.0,HIGH,True,True,8364.3
+1,otp_scam,otp_card_block,True,@MOBILE,Your debit card is blocked. Send OTP 201938 to unblock immediately.,76.0,HIGH,True,True,8022.0
+1,otp_scam,otp_refund_upi,True,@MOBILE,"Refund of Rs 2,499 pending. Share the 6 digit code 772310 received on your phone to get money back.",53.0,MEDIUM,True,True,10347.0
+1,otp_scam,otp_insurance,True,@MOBILE,Your insurance policy bonus is ready. Provide verification code 590312 to our agent now.,55.0,MEDIUM,True,True,11412.3
+1,otp_scam,otp_job,True,@MOBILE,Job interview confirmed. Share OTP 128904 with HR to book your slot.,53.0,MEDIUM,True,True,9446.6
+1,otp_scam,otp_hinglish,True,@MOBILE,Sir aapka account block ho jayega. Abhi OTP 556231 humein bataiye verification ke liye.,45.0,MEDIUM,True,True,12648.5
+1,otp_scam,otp_hinglish_2,True,@MOBILE,"Aapke account mein refund aaya hai, OTP 310045 share karein turant.",55.0,MEDIUM,True,True,9940.4
+1,otp_scam,otp_phishing_device,True,SECURITY,Your account was accessed from a new device. Enter OTP 882190 at our secure portal to protect it.,43.0,MEDIUM,True,True,10655.1
+1,otp_scam,otp_delivery,True,@MOBILE,Courier agent here. Share the delivery OTP 421900 over phone before parcel is returned.,45.0,MEDIUM,True,True,8099.6
+1,otp_legit,normal_otp,False,HDFCBK,Your OTP is 482913. Valid for 10 minutes. Do not share this OTP with anyone.,43.0,MEDIUM,True,False,4480.3
+1,otp_legit,normal_otp,False,AMAZON,Your Amazon verification code is 118273. Never share this code with anyone.,43.0,MEDIUM,True,False,10432.5
+1,otp_legit,normal_otp,False,SBIINB,"OTP for your SBI net banking login is 774120. Do not disclose to anyone, including bank staff.",43.0,MEDIUM,True,False,6806.3
+1,otp_legit,normal_otp,False,ICICIB,"123456 is your ICICI Bank OTP for transaction of Rs 1,200. Valid 5 mins. Never share.",63.0,MEDIUM,True,False,9608.1
+1,otp_legit,normal_otp,False,AXISBK,Use 908172 as your Axis Bank login OTP. Do not share it with anyone.,43.0,MEDIUM,True,False,7343.1
+1,otp_legit,normal_otp,False,PAYTM,909090 is your Paytm verification code. Do not share it with anyone.,43.0,MEDIUM,True,False,6739.8
+1,otp_legit,normal_otp,False,GOOGLE,G-501923 is your Google verification code.,43.0,MEDIUM,True,False,4406.5
+1,otp_legit,normal_otp,False,SWIGGY,Your Swiggy login OTP is 7421. It is valid for 10 minutes.,43.0,MEDIUM,True,False,6698.0
+1,otp_legit,normal_otp,False,UBERIN,Your Uber code is 4521. Never share this code. Reply STOP to opt out.,24.0,LOW,False,True,5772.5
+1,otp_legit,normal_otp,False,JIOCRE,Your Jio OTP is 667412. It expires in 10 minutes. Jio never asks for OTP on calls.,63.0,MEDIUM,True,False,9254.2
+1,otp_legit,normal_otp,False,IRCTC,OTP for IRCTC login is 390481. Do not share with anyone.,43.0,MEDIUM,True,False,10505.1
+1,otp_legit,normal_otp,False,ZOMATO,Your Zomato verification code is 238841. Valid for 5 minutes.,43.0,MEDIUM,True,False,10020.9
+1,otp_legit,normal_otp,False,UIDAI,Your Aadhaar OTP is 458102. Valid for 10 minutes. Do not share it with anyone.,63.0,MEDIUM,True,False,6237.4
+1,otp_legit,normal_otp_hinglish,False,HDFCBK,Aapka OTP 392011 hai. Kisi ke saath share na karein. 10 minute tak valid.,43.0,MEDIUM,True,False,5552.0
+1,url_phishing,phishing_bank,True,@MOBILE,Alert - HDFC Bank: Your account will be suspended due to KYC issue. Verify now: http://hdfc-kyc-verify.example/login,100,CRITICAL,True,True,14324.6
+1,url_phishing,phishing_bank_sbi,True,@MOBILE,SBI YONO: Your account is blocked. Update PAN immediately: http://sbi-yono-update.example/pan,100,CRITICAL,True,True,23721.4
+1,url_phishing,phishing_bank_icici,True,@MOBILE,"ICICI Bank: Your credit card reward points of Rs 8,640 expire today. Redeem: http://icici-rewards-claim.example/",100,CRITICAL,True,True,18479.4
+1,url_phishing,phishing_bank_axis,True,@MOBILE,"Dear Axis customer, your netbanking will be deactivated. Re-verify here: http://axis-secure-login.example/",100,CRITICAL,True,True,23478.9
+1,url_phishing,phishing_delivery,True,@MOBILE,Your parcel is held at customs. Pay the pending fee to release delivery: http://customs-fee-pay.example/,100,CRITICAL,True,True,23783.3
+1,url_phishing,phishing_delivery_2,True,@MOBILE,India Post: Package undelivered due to incomplete address. Update details within 24h: http://indiapost-redeliver.example/,100,CRITICAL,True,True,18850.6
+1,url_phishing,phishing_delivery_3,True,@MOBILE,"FedEx: Your shipment is on hold, pay Rs 49 reshipment fee: http://fedex-pay-fee.example/",100,CRITICAL,True,True,23879.5
+1,url_phishing,phishing_prize,True,@MOBILE,"Congratulations! You've won a lucky draw prize of Rs 5,00,000. Claim now: http://bit.ly/luckyclaim99",100,CRITICAL,True,True,18620.6
+1,url_phishing,phishing_tax,True,@MOBILE,"Income Tax Dept: Refund of Rs 15,320 approved. Submit bank details: http://incometax-refund-claim.example/",100,CRITICAL,True,True,24535.8
+1,url_phishing,phishing_electricity,True,@MOBILE,"Dear consumer, your electricity connection will be disconnected tonight 9:30pm. Pay pending bill: http://bses-bill-pay.example/",100,CRITICAL,True,True,25706.9
+1,url_phishing,phishing_fastag,True,@MOBILE,Your FASTag is deactivated. Recharge immediately to avoid penalty: http://fastag-recharge-now.example/,91.0,CRITICAL,True,True,14705.4
+1,url_phishing,phishing_aadhaar,True,@MOBILE,Your Aadhaar is suspended. Link with PAN now: http://aadhaar-pan-link.example/,100,CRITICAL,True,True,19388.1
+1,url_phishing,phishing_upi,True,@MOBILE,"Rs 2,000 received on PhonePe. To accept, enter your UPI PIN here: http://phonepe-receive.example/",100,CRITICAL,True,True,21136.4
+1,url_phishing,phishing_netflix,True,@MOBILE,Netflix: Your payment failed. Update billing within 24 hours or account will be closed: http://netflix-billing-update.example/,100,CRITICAL,True,True,13430.1
+1,url_phishing,phishing_amazon,True,@MOBILE,Amazon: Suspicious order of iPhone 15 placed from your account. Cancel here: http://amazon-order-cancel.example/,100,CRITICAL,True,True,14270.8
+1,url_phishing,phishing_whatsapp,True,@MOBILE,WhatsApp Gold subscription expired. Renew now: http://whatsapp-gold-renew.example/,59.0,MEDIUM,True,True,14479.5
+1,url_phishing,phishing_shortlink,True,@MOBILE,Your account has a pending notice. Check: http://tinyurl.com/acc-notice-91,100,CRITICAL,True,True,13178.2
+1,url_phishing,phishing_cowin,True,@MOBILE,"Govt scheme: Rs 3,000 subsidy credited soon. Register with bank details: http://pm-subsidy-register.example/",100,CRITICAL,True,True,17624.1
+1,url_phishing,phishing_telecom,True,@MOBILE,Airtel: Your SIM will be disconnected in 2 hours due to incomplete KYC. Update: http://airtel-kyc-update.example/,100,CRITICAL,True,True,17078.1
+1,url_phishing,phishing_loan_app,True,@MOBILE,"Pre-approved loan of Rs 3,00,000 at 0% interest. Submit Aadhaar & PAN: http://instant-loan-approve.example/apply",100,CRITICAL,True,True,23394.7
+1,url_phishing,phishing_traffic_challan,True,@MOBILE,"E-challan of Rs 1,000 issued on your vehicle. Pay within 24h to avoid court notice: http://echallan-pay.example/",100,CRITICAL,True,True,16450.6
+1,url_phishing,phishing_ip_ssl,True,@MOBILE,Your account will be locked. Login at http://192.168.44.12/secure to verify.,100,CRITICAL,True,True,24018.6
+1,url_legit,legit_delivery,False,AMZN,Your package is out for delivery and should arrive today. Track it: https://www.amazon.in/track/1234567890,21.0,LOW,False,True,21192.7
+1,url_legit,legit_delivery_2,False,BLUEDT,Your Blue Dart shipment is out for delivery. Track: https://www.bluedart.com/tracking,33.0,LOW,False,True,29163.5
+1,url_legit,legit_flight,False,INDIGO,Your IndiGo web check-in is open for flight 6E-204. Check in: https://www.goindigo.in/web-check-in.html,28.0,LOW,False,True,25812.2
+1,url_legit,legit_ecom_order,False,FLIPKT,Your Flipkart order has shipped. Details: https://www.flipkart.com/account/orders,33.0,LOW,False,True,14217.3
+1,url_legit,legit_bank_netbanking,False,HDFCBK,Your HDFC Bank statement is ready. Login at https://netbanking.hdfcbank.com to view.,100,CRITICAL,True,False,18553.8
+1,url_legit,legit_govt_dl,False,DGLOCK,Your driving licence is available in DigiLocker. View: https://www.digilocker.gov.in,28.0,LOW,False,True,27066.7
+1,url_legit,legit_github,False,GITHUB,Sign in to GitHub at https://github.com/login,28.0,LOW,False,True,25556.3
+1,url_legit,legit_google_acct,False,GOOGLE,Manage your Google account at https://accounts.google.com/,27.0,LOW,False,True,20459.3
+1,url_legit,legit_paypal,False,PAYPAL,Visit PayPal securely at https://www.paypal.com/signin,28.0,LOW,False,True,15404.8
+1,url_legit,legit_microsoft,False,MSFT,Your Microsoft 365 subscription renews on 5 Nov. Manage at https://account.microsoft.com,28.0,LOW,False,True,31645.2
+1,url_legit,legit_apple,False,APPLE,Your Apple ID receipt is available at https://support.apple.com,28.0,LOW,False,True,19056.1
+1,url_legit,legit_railway,False,IRCTCI,PNR 4521896723 confirmed. Check status: https://www.indianrail.gov.in/enquiry/PNR,28.0,LOW,False,True,16402.8
+1,url_legit,legit_zoom,False,@MOBILE,Join my Zoom meeting at 4pm: https://zoom.us/j/9876543210,19.0,LOW,False,True,17598.3
+1,url_legit,legit_friend_link,False,@MOBILE,Check out this article: https://www.thehindu.com/news/national/,18.0,LOW,False,True,28516.4
+1,url_legit,legit_swiggy,False,SWIGGY,Your Swiggy order is on the way! Track live: https://www.swiggy.com/track,27.0,LOW,False,True,9761.9
+1,url_legit,legit_uber,False,UBERIN,Your Uber receipt for Rs 245 is available: https://www.uber.com/in/en/,61.0,MEDIUM,True,False,16605.3
+1,impersonation,impersonation_bank,True,@MOBILE,SBI: Your account will be blocked. Send your card number and CVV immediately to avoid penalty.,72.0,HIGH,True,True,3194.6
+1,impersonation,impersonation_hdfc,True,@MOBILE,"HDFC Bank: Account suspended due to KYC. Send card number, expiry and CVV now.",72.0,HIGH,True,True,3031.9
+1,impersonation,impersonation_rbi,True,@MOBILE,RBI notice: Your account is under investigation. Transfer funds to the safe account 4455667788 immediately.,34.0,LOW,False,False,2670.5
+1,impersonation,impersonation_police,True,@MOBILE,"This is Cyber Crime Police. A case is registered on your Aadhaar. Pay Rs 25,000 now to avoid arrest.",70.0,HIGH,True,True,6298.5
+1,impersonation,impersonation_courier_drugs,True,@MOBILE,"FedEx: A parcel in your name contains illegal items. Contact CBI officer immediately, do not tell anyone.",34.0,LOW,False,False,5037.4
+1,impersonation,impersonation_ceo,True,@MOBILE,"Hi, this is your CEO. I am in a meeting, buy 5 Amazon gift cards of Rs 5,000 and send me the codes urgently.",62.0,MEDIUM,True,True,3719.3
+1,impersonation,impersonation_tech_support,True,@MOBILE,Microsoft Support: Your computer is infected. Call 1800-xxx-9981 immediately and install AnyDesk.,38.0,MEDIUM,True,True,9214.9
+1,impersonation,impersonation_trai,True,@MOBILE,TRAI: Your number will be disconnected in 2 hours due to illegal activity. Press 9 to talk to officer.,24.0,LOW,False,False,2503.9
+1,impersonation,impersonation_electric_board,True,@MOBILE,Electricity Board: Previous bill unpaid. Connection disconnects tonight. Call 98xxxxxx12 officer now.,24.0,LOW,False,False,2650.3
+1,impersonation,impersonation_customs,True,@MOBILE,"Customs Dept: Your gift from abroad is held. Pay Rs 18,000 clearance fee via UPI to release.",41.0,MEDIUM,True,True,2911.1
+1,financial_scam,financial_scam,True,@MOBILE,"URGENT! Send Rs 20,000 to this UPI ID immediately or face legal action.",61.0,MEDIUM,True,True,3464.1
+1,financial_scam,prize_secrecy,True,@MOBILE,"You have won a prize. Don't tell anyone about this, just transfer the small processing fee now.",41.0,MEDIUM,True,True,4242.7
+1,financial_scam,emergency_money,True,@MOBILE,"I've had an accident, send 20000 rupees urgently, don't call me right now.",65.0,HIGH,True,True,13169.0
+1,financial_scam,emergency_money_2,True,@MOBILE,"Mom this is my new number, phone is broken. Need Rs 15,000 urgently for hospital, send to this account.",61.0,MEDIUM,True,True,2583.6
+1,financial_scam,emergency_money_3,True,@MOBILE,"Bro stuck at airport, wallet lost. Please send 8000 on GPay right now, will return tonight. Don't tell Dad.",75.0,HIGH,True,True,7961.6
+1,financial_scam,investment_crypto,True,@MOBILE,"Earn Rs 50,000 daily with our crypto trading signals. 100% guaranteed returns. Join now: http://bit.ly/cryptoprofit7",91.0,CRITICAL,True,True,13389.1
+1,financial_scam,investment_stock,True,@MOBILE,"Join our VIP stock tips group. Invest Rs 10,000 and get Rs 1 lakh in 7 days. Guaranteed profit.",41.0,MEDIUM,True,True,3959.5
+1,financial_scam,task_scam,True,@MOBILE,"Earn Rs 3,000 per day by liking YouTube videos. Part-time work from home. Message HR on Telegram now.",41.0,MEDIUM,True,True,3240.3
+1,financial_scam,job_fee,True,@MOBILE,"You are selected for a job at Amazon. Pay Rs 2,500 registration fee to confirm your offer letter.",44.0,MEDIUM,True,True,3207.2
+1,financial_scam,loan_advance_fee,True,@MOBILE,"Your loan of Rs 5 lakh is approved. Pay Rs 4,999 insurance fee first to release the amount.",41.0,MEDIUM,True,True,2721.8
+1,financial_scam,romance_scam,True,@MOBILE,"Hi dear, I am Dr. Sarah from UK. I want to send you a gift parcel, just pay Rs 12,000 customs charges.",41.0,MEDIUM,True,True,3390.9
+1,financial_scam,sim_card_charge,True,@MOBILE,Pay Rs 10 to this UPI ID to activate your free recharge of Rs 599. Valid today only.,41.0,MEDIUM,True,True,2769.7
+1,financial_scam,inheritance,True,@MOBILE,"Dear beneficiary, you are entitled to USD 4.5 million inheritance. Send your bank details and Rs 20,000 fee.",41.0,MEDIUM,True,True,3135.3
+1,financial_scam,digital_arrest,True,@MOBILE,"You are under digital arrest. Stay on video call and do not inform anyone. Transfer Rs 1,50,000 to RBI verification account.",73.0,HIGH,True,True,4320.7
+1,financial_scam,kbc_lottery,True,@MOBILE,KBC Lottery: Your number won Rs 25 lakh. Contact manager on WhatsApp and pay processing fee to claim.,41.0,MEDIUM,True,True,3005.2
+1,spam,spam_loan,True,@MOBILE,Get instant personal loan up to 5 lakhs with zero documentation! Apply now: http://bit.ly/instaloan,100,CRITICAL,True,True,12302.7
+1,spam,spam_lottery,True,@MOBILE,CONGRATS! Your number has won our lucky draw. Claim your gift now: http://bit.ly/luckydraw2,100,CRITICAL,True,True,23517.2
+1,spam,spam_casino,True,@MOBILE,"Play teen patti and win Rs 10,000 today! Sign up bonus Rs 500: http://bit.ly/teenwin",100,CRITICAL,True,True,13163.2
+1,spam,spam_betting,True,@MOBILE,IPL betting tips 100% sure. Join our paid group and win big daily: http://bit.ly/iplsure,100,CRITICAL,True,True,17838.4
+1,spam,spam_adult,True,@MOBILE,Hot singles in your area waiting to chat with you. Click now: http://bit.ly/hotchat18,100,CRITICAL,True,True,19080.2
+1,spam,spam_pharma,True,@MOBILE,Buy medicines without prescription at 80% off. Order now: http://bit.ly/cheaprx,59.0,MEDIUM,True,True,13481.8
+1,spam,spam_followers,True,@MOBILE,"Get 10,000 Instagram followers for just Rs 99. Limited offer: http://bit.ly/getfollow",100,CRITICAL,True,True,33782.2
+1,spam,spam_credit_card,True,@MOBILE,"Pre-approved credit card, no income proof needed. Reply YES to get it today.",24.0,LOW,False,False,2506.0
+1,hinglish_scam,hinglish_kyc,True,@MOBILE,"Dear customer aapka KYC pending hai, account aaj band ho jayega. Abhi update karein: http://bit.ly/kycnow",100,CRITICAL,True,True,14822.6
+1,hinglish_scam,hinglish_lottery,True,@MOBILE,Badhai ho! Aapne 5 lakh ka inaam jeeta hai. Claim karne ke liye turant click karein: http://bit.ly/inaam5,100,CRITICAL,True,True,21976.7
+1,hinglish_scam,hinglish_police,True,@MOBILE,Aapke naam par case darj hua hai. Turant 20000 rupaye bhejiye warna giraftari hogi.,38.0,MEDIUM,True,True,4752.7
+1,hinglish_scam,hinglish_job,True,@MOBILE,Ghar baithe 5000 rupaye daily kamayein. Abhi registration fees 500 UPI par bhejein.,45.0,MEDIUM,True,True,15641.5
+1,hinglish_scam,hinglish_electric,True,@MOBILE,Aapka bijli connection aaj raat kat jayega. Turant is number par call karein aur bill update karein.,24.0,LOW,False,False,2841.8
+1,hinglish_scam,hindi_script_kyc,True,@MOBILE,"प्रिय ग्राहक, आपका बैंक खाता आज बंद हो जाएगा। तुरंत KYC अपडेट करें: http://bit.ly/kyc-hindi",100,CRITICAL,True,True,17312.2
+1,hinglish_scam,hindi_script_prize,True,@MOBILE,बधाई हो! आपने 10 लाख रुपये का इनाम जीता है। अभी क्लेम करें: http://bit.ly/inaam10,100,CRITICAL,True,True,16429.1
+1,legit_transactional,legit_bank_notice,False,HDFCBK,"Your HDFC Bank account balance as of today is Rs 12,500.",41.0,MEDIUM,True,False,3043.7
+1,legit_transactional,bank_debit,False,SBIINB,"Rs 1,250.00 debited from A/c XX4521 on 10-Oct-26 at AMAZON. Avl bal Rs 22,340.",42.0,MEDIUM,True,False,2941.4
+1,legit_transactional,bank_credit,False,ICICIB,"Rs 45,000.00 credited to your A/c XX7712 on 05-Oct-26. Salary credit. Avl bal Rs 61,200.",44.0,MEDIUM,True,False,2740.4
+1,legit_transactional,bank_upi,False,AXISBK,"Rs 350 paid via UPI to SWIGGY. UPI Ref 4123987612. If not you, call 1800-xxx-xxxx.",43.0,MEDIUM,True,False,9566.2
+1,legit_transactional,bank_emi,False,HDFCBK,"Your EMI of Rs 8,450 for loan A/c XX9021 is due on 05-Nov. Please maintain sufficient balance.",41.0,MEDIUM,True,False,2848.7
+1,legit_transactional,bank_fraud_warning,False,SBIINB,"SBI never asks for your PIN, OTP, or card details over call or SMS. Report fraud at 1930.",43.0,MEDIUM,True,False,8247.3
+1,legit_transactional,bank_cc_statement,False,ICICIB,"Your ICICI credit card statement of Rs 14,320 is generated. Due date 25-Oct. Pay via the iMobile app.",41.0,MEDIUM,True,False,3081.7
+1,legit_transactional,legit_reminder,False,@MOBILE,"Reminder: your electricity bill of Rs 1,240 is due on the 5th.",41.0,MEDIUM,True,False,2687.6
+1,legit_transactional,legit_utility_paid,False,BSESDL,"Your electricity bill payment of Rs 1,240 was received. Thank you.",41.0,MEDIUM,True,False,3835.6
+1,legit_transactional,legit_gas,False,INDGAS,Your LPG cylinder booking is confirmed. Delivery expected within 2 days.,22.0,LOW,False,True,3063.8
+1,legit_transactional,legit_recharge,False,AIRTEL,Recharge of Rs 299 successful. Validity 28 days. Thank you for choosing Airtel.,41.0,MEDIUM,True,False,3043.2
+1,legit_transactional,legit_data_usage,False,JIOCRE,You have used 80% of your daily data quota. Visit MyJio app for more.,28.0,LOW,False,True,2334.0
+1,legit_transactional,legit_insurance,False,LICIND,"Your LIC premium of Rs 6,200 is due on 15-Nov. Pay via the LIC Customer Portal or nearest branch.",41.0,MEDIUM,True,False,2556.0
+1,legit_transactional,legit_flight,False,INDIGO,Your flight 6E-204 on 14 Oct departs at 06:15 from Mumbai T2. Web check-in is open.,16.0,LOW,False,True,2520.0
+1,legit_transactional,legit_train,False,IRCTCI,Your ticket PNR 4521896723 is confirmed. Coach B2 seat 34. Happy journey.,16.0,LOW,False,True,2903.5
+1,legit_transactional,legit_appointment,False,@MOBILE,Your appointment is confirmed for tomorrow at 10am.,24.0,LOW,False,True,2457.6
+1,legit_transactional,legit_hospital,False,APOLLO,Reminder: your appointment with Dr. Mehta is on 14-Oct at 11:30 AM at Apollo Clinic.,22.0,LOW,False,True,2655.2
+1,legit_transactional,legit_school,False,SCHOOL,Parent-teacher meeting is scheduled on Saturday 10am. Kindly attend.,22.0,LOW,False,True,2415.5
+1,legit_transactional,legit_delivery_otp,False,AMAZON,Your delivery OTP is 4821. Share it with the delivery agent only when he hands over your package.,43.0,MEDIUM,True,False,8631.4
+1,legit_transactional,legit_swiggy_delivered,False,SWIGGY,Your Swiggy order has been delivered. Enjoy your meal!,20.0,LOW,False,True,2480.8
+1,legit_transactional,legit_cab,False,OLACAB,Your driver Ramesh (MH02AB1234) will arrive in 3 mins. Share OTP 4417 to start the ride.,51.0,MEDIUM,True,False,9731.6
+1,legit_personal,legit_saved_contact,False,@MOBILE,"Hey, are we still meeting at 6?",13.0,SAFE,False,True,2459.0
+1,legit_personal,legit_casual,False,@MOBILE,Good morning! Hope you have a great day.,14.0,SAFE,False,True,2358.1
+1,legit_personal,legit_family,False,@MOBILE,"Mom, I'll be home a bit late tonight, don't wait up for dinner.",14.0,SAFE,False,True,2507.9
+1,legit_personal,legit_friend_plan,False,@MOBILE,Movie at 8 tonight? I'll book the tickets.,14.0,SAFE,False,True,2207.9
+1,legit_personal,legit_friend_money,False,@MOBILE,Thanks for lunch yesterday! I'll send you my share of Rs 450 on GPay in the evening.,41.0,MEDIUM,True,False,2415.1
+1,legit_personal,legit_colleague,False,@MOBILE,"Meeting moved to 3pm, conference room B. Please bring the Q3 report.",14.0,SAFE,False,True,4087.9
+1,legit_personal,legit_birthday,False,@MOBILE,"Happy birthday!! Party at my place on Saturday, don't be late!",14.0,SAFE,False,True,2313.1
+1,legit_personal,legit_unknown_hello,False,@MOBILE,"Hi, this is Suresh from the society office. The water supply will be off tomorrow 10am-2pm.",24.0,LOW,False,True,2652.1
+1,legit_personal,legit_unknown_courier,False,@MOBILE,"Hello sir, I'm outside your gate with your parcel. Please come down.",24.0,LOW,False,True,2430.4
+1,legit_personal,legit_landlord,False,@MOBILE,"Hi, rent for October is due. Please transfer to the usual account whenever convenient.",14.0,SAFE,False,True,2463.9
+1,legit_personal,legit_hinglish_friend,False,@MOBILE,Bhai kal ka match dekhne chalein? Main snacks le aata hoon.,14.0,SAFE,False,True,2723.0
+1,legit_personal,legit_hinglish_family,False,@MOBILE,Beta khana kha liya? Aaj jaldi ghar aa jana.,14.0,SAFE,False,True,2847.8
+1,legit_personal,legit_hindi_script,False,@MOBILE,शुभ प्रभात! आज शाम को घर आ रहे हो ना?,14.0,SAFE,False,True,3224.6
+1,legit_personal,legit_emoji,False,@MOBILE,Congrats on the new job! 🎉🎉 Let's celebrate this weekend 🍕,14.0,SAFE,False,True,2877.0
+1,legit_personal,legit_short,False,@MOBILE,ok,14.0,SAFE,False,True,2673.1
+1,legit_personal,legit_short_2,False,@MOBILE,Call me when free.,14.0,SAFE,False,True,2963.6
+1,legit_promo,legit_promo,False,MYNTRA,Flat 40% off on your favorite brands this weekend only. Shop now on the Myntra app.,16.0,LOW,False,True,3166.6
+1,legit_promo,legit_promo_2,False,AMAZON,Great Indian Festival starts tomorrow! Up to 70% off on electronics. Shop on the Amazon app.,24.0,LOW,False,True,2689.8
+1,legit_promo,legit_promo_3,False,ZOMATO,Hungry? Get 50% off up to Rs 100 on your next order with code WELCOME50.,41.0,MEDIUM,True,False,6716.4
+1,legit_promo,legit_promo_4,False,NYKAAA,Your Nykaa wishlist item is back in stock! Grab it before it's gone.,22.0,LOW,False,True,6241.6
+1,legit_promo,legit_promo_bank,False,HDFCBK,Pre-approved personal loan offer for you. Visit your nearest HDFC Bank branch or login to NetBanking to know more. T&C apply.,,,,,
+1,legit_promo,legit_promo_telecom,False,AIRTEL,Recharge with Rs 399 and get unlimited calls with 2GB/day for 28 days. Recharge on the Airtel Thanks app.,41.0,MEDIUM,True,False,3322.1
+1,legit_promo,legit_promo_cc,False,ICICIB,Enjoy 5% cashback on your ICICI Credit Card this festive season on select merchants. T&C apply.,28.0,LOW,False,True,6096.7
+1,legit_promo,legit_promo_urgent_words,False,BIGBSK,Hurry! Last day of our sale. Offer ends tonight at midnight. Visit your nearest BigBasket store.,22.0,LOW,False,True,6088.8
+1,adversarial_legit,legit_urgent_wording,False,HDFCBK,"Urgent: your credit card payment of Rs 14,320 is due tomorrow. Pay via the HDFC app to avoid late fee.",61.0,MEDIUM,True,False,6144.5
+1,adversarial_legit,legit_account_blocked_real,False,SBIINB,Your SBI debit card has been blocked as per your request. Visit your nearest branch to get a new card.,41.0,MEDIUM,True,False,6568.5
+1,adversarial_legit,legit_kyc_branch,False,HDFCBK,Your KYC documents are due for periodic update. Please visit your nearest branch with ID proof. Do not click on links shared by unknown persons.,26.0,LOW,False,True,6448.0
+1,adversarial_legit,legit_prize_real,False,FLIPKT,Congratulations! You won a Rs 100 Flipkart gift voucher in our contest. Voucher auto-applied to your account.,61.0,MEDIUM,True,False,6520.7
+1,adversarial_legit,legit_security_alert,False,GOOGLE,"Security alert: new sign-in on Pixel 8. If this was you, no action needed.",20.0,LOW,False,True,6257.8
+1,adversarial_legit,legit_police_real,False,MUMPOL,Traffic Police Mumbai: Reminder to renew your PUC certificate. Details at https://mahatransport.gov.in,58.0,MEDIUM,True,False,19956.1
+1,adversarial_legit,legit_refund_real,False,AMAZON,Your refund of Rs 799 for order #402-123 has been initiated and will reflect in 3-5 business days.,41.0,MEDIUM,True,False,6534.8
+1,adversarial_legit,legit_loan_real,False,BAJAJF,Your loan application is under review. Our representative will contact you within 2 working days.,41.0,MEDIUM,True,False,5791.1
+1,adversarial_legit,legit_otp_warning,False,AXISBK,"Never share your OTP, PIN, or CVV with anyone. Axis Bank will never ask for these.",41.0,MEDIUM,True,False,6206.0
+1,adversarial_legit,legit_account_suspend_real,False,NETFLX,Your Netflix plan renews tomorrow. Make sure your payment method is up to date in Account settings.,28.0,LOW,False,True,6211.2
+1,edge_cases,obfuscated_spacing,True,@MOBILE,Y0ur acc0unt wi11 be bl0cked. Upd@te KYC n0w: http://kyc-upd8.example/,59.0,MEDIUM,True,True,18893.6
+1,edge_cases,uppercase_scam,True,@MOBILE,URGENT!!! YOUR BANK ACCOUNT IS BLOCKED. CLICK HERE TO VERIFY: http://bank-verify-now.example/,94.0,CRITICAL,True,True,19765.7
+1,edge_cases,mixed_emoji_scam,True,@MOBILE,🎁🎁 You have WON iPhone 15 🎉 Claim FREE here 👉 http://bit.ly/freeiphone15,,,,,
+1,edge_cases,long_scam,True,@MOBILE,"Dear valued customer, we regret to inform you that due to incomplete KYC verification as mandated by the RBI, your account will be permanently deactivated within 24 hours. To avoid inconvenience, kindly complete your KYC verification immediately by clicking the link below and entering your net banking credentials, debit card number, expiry date and CVV. Failure to comply will result in permanent account closure. http://rbi-kyc-compliance.example/verify",98.0,CRITICAL,True,True,18633.2
+1,edge_cases,multiple_urls_scam,True,@MOBILE,Congratulations! Claim your prize at http://bit.ly/prize88 or http://tinyurl.com/prize88b before it expires.,,,,,
+1,edge_cases,scam_no_url_short,True,@MOBILE,Send OTP now or account blocked.,61.0,MEDIUM,True,True,6462.7
+1,edge_cases,ip_url_scam,True,@MOBILE,Verify your bank account now: http://103.45.22.9/login.php,91.0,CRITICAL,True,True,40549.8
+1,edge_cases,number_only_scam,True,@MOBILE,Call 9XXXXXXX21 now to claim your lottery prize of Rs 10 lakh.,41.0,MEDIUM,True,True,6190.6
+1,edge_cases,legit_long,False,@MOBILE,"Hi team, sharing the agenda for tomorrow's review: 1) Sprint demo 2) Q4 roadmap 3) Hiring updates 4) Budget discussion. Please come prepared with your updates. The meeting will be in conference room B at 3pm and will run for about an hour. Let me know if anything needs to change.",14.0,SAFE,False,True,5785.8
+1,edge_cases,legit_uppercase,False,@MOBILE,HAPPY DIWALI TO YOU AND YOUR FAMILY!!!,14.0,SAFE,False,True,5972.1
+1,edge_cases,legit_emoji_only,False,@MOBILE,👍👍,14.0,SAFE,False,True,5750.0
+1,edge_cases,legit_numbers,False,@MOBILE,"Flight 6E204, gate 14, boarding 5:40pm.",13.0,SAFE,False,True,5827.5
+1,edge_cases,legit_special_chars,False,@MOBILE,"Bill: Rs 1,240 (50% off!) -> total Rs 620 [paid]",41.0,MEDIUM,True,False,5848.9
+1,edge_cases,legit_wrong_number,False,@MOBILE,"Sorry, wrong number. Please ignore my previous message.",24.0,LOW,False,True,6054.2

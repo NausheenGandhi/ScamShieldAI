@@ -29,7 +29,7 @@ export const INTRO_STEPS = [
     eyebrow: "MULTI-AGENT ENGINE",
     title: "Five AI agents. One verdict.",
     description:
-      "Contact, URL, Pattern, OTP, Blockchain and Coordinator agents analyse each message independently, then fuse their findings into a single risk score.",
+      "Contact, URL, Pattern, OTP, and Coordinator agents analyse each message independently, then fuse their findings into a single risk score.",
   },
   {
     icon: "scan-outline",
@@ -41,7 +41,7 @@ export const INTRO_STEPS = [
   {
     icon: "cube-outline",
     eyebrow: "COMMUNITY DEFENCE",
-    title: "Blockchain threat intel",
+    title: "MongoDB threat intel",
     description:
       "Every confirmed scam is fingerprinted and written on-chain, so a threat caught on one device protects everyone instantly.",
   },
